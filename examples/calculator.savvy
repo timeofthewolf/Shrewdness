@@ -1,0 +1,66 @@
+var ch = 0;
+
+fn skip_spaces() {
+    while (ch == ' ') { ch = input(); }
+    return 0;
+}
+
+fn factor() {
+    skip_spaces();
+
+    if (ch == '-') {
+        ch = input();
+        return 0 - factor();
+    }
+
+    if (ch == '(') {
+        ch = input();
+        var v = expr();
+        skip_spaces();
+        if (ch == ')') { ch = input(); }
+        skip_spaces();
+        return v;
+    }
+
+    var n = 0;
+    while (ch >= '0' && ch <= '9') {
+        n = n * 10 + (ch - '0');
+        ch = input();
+    }
+    skip_spaces();
+    return n;
+}
+
+fn term() {
+    var acc = factor();
+    while (ch == '*' || ch == '/' || ch == '%') {
+        var op = ch;
+        ch = input();
+        var rhs = factor();
+        if (op == '*') { acc = acc * rhs; }
+        if (op == '/') { acc = acc / rhs; }
+        if (op == '%') { acc = acc % rhs; }
+    }
+    return acc;
+}
+
+fn expr() {
+    var acc = term();
+    while (ch == '+' || ch == '-') {
+        var op = ch;
+        ch = input();
+        var rhs = term();
+        if (op == '+') { acc = acc + rhs; }
+        if (op == '-') { acc = acc - rhs; }
+    }
+    return acc;
+}
+
+while (1 == 1) {
+    ch = input();
+    if (ch == -1) {
+        break;
+    }
+    print(expr());
+    putchar('\n');
+}

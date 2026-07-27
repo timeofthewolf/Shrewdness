@@ -1,0 +1,26 @@
+fn move(n, from, to, via) {
+    if (n == 0) { return 0; }
+
+    move(n - 1, from, via, to);
+
+    puts("  move disc ");
+    print(n);
+    puts("from ");
+    putchar(from);
+    puts(" to ");
+    putchar(to);
+    putchar('\n');
+
+    move(n - 1, via, to, from);
+    return 0;
+}
+
+var discs = 4;
+
+puts("Towers of Hanoi with ");
+print(discs);
+puts("discs\n");
+
+move(discs, 'A', 'C', 'B');
+
+puts("done\n");

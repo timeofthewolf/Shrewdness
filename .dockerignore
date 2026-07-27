@@ -1,0 +1,10 @@
+build*/
+gen*/
+.cache/
+.git/
+.vscode/
+.idea/
+compile_commands.json
+web/node_modules/
+web/dist/
+examples/*.shrewd

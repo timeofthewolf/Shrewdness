@@ -1,0 +1,30 @@
+var cache[64];
+
+fn naive(n) {
+    if (n < 2) { return n; }
+    return naive(n - 1) + naive(n - 2);
+}
+
+fn memo(n) {
+    if (n < 2) { return n; }
+    if (cache[n] != 0) { return cache[n]; }
+    var v = memo(n - 1) + memo(n - 2);
+    cache[n] = v;
+    return v;
+}
+
+puts("naive:  ");
+for (var i = 0; i <= 20; i = i + 1) {
+    print(naive(i));
+}
+putchar('\n');
+
+puts("memo:   ");
+for (var j = 0; j <= 20; j = j + 1) {
+    print(memo(j));
+}
+putchar('\n');
+
+puts("memo(60) = ");
+print(memo(60));
+putchar('\n');

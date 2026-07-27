@@ -1,0 +1,17 @@
+build*/
+
+.cache/
+.vscode/
+.idea/
+compile_commands.json
+
+examples/*.shrewd
+
+gen*/
+
+web/node_modules/
+web/dist/
+
+.env
+.env.*
+!deploy/env.example

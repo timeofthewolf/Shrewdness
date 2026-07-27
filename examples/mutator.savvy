@@ -1,0 +1,10 @@
+var rate = 20;
+
+for (var i = 0; i < self.length; i = i + 1) {
+    var g = self[i];
+    if (rand() % rate == 0) {
+        g = g + 1;
+    }
+    emit(g);
+}
+spawn();

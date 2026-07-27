@@ -1,0 +1,48 @@
+# The ordinary way to run Shrewdness: locally, or behind a tunnel/proxy on a
+# server. See deploy/README.md for the full hosting notes.
+#
+#   docker compose up -d --build        # then http://localhost:7070/
+
+services:
+  shrewdness:
+    build: .
+    restart: unless-stopped
+
+    # Loopback only, deliberately. Docker writes its own iptables rules ahead
+    # of ufw/firewalld, so a bare "7070:7070" publishes on 0.0.0.0 and stays
+    # reachable from the internet even with the firewall "closed" — letting
+    # people reach the IDE around whatever proxy or tunnel is in front of it.
+    ports:
+      - "127.0.0.1:7070:7070"
+
+    # Behind a tunnel or proxy, add the flag that says where the real client
+    # address is, or every visitor shares one rate-limit bucket:
+    #
+    #   --cloudflare    cloudflared          (reads CF-Connecting-IP)
+    #   --trust-proxy   nginx, Caddy, Traefik (reads X-Forwarded-For)
+    #
+    # e.g. command: [/app/shrewdness, --net, --port, "7070", --public, --cloudflare]
+    command: ["/app/shrewdness", "--net", "--port", "7070", "--public"]
+
+    # The backstop under the application's own limits: visitors run arbitrary
+    # programs, and this is what caps what they can spend.
+    cpus: 2.0
+    mem_limit: 1g
+    pids_limit: 256
+
+    # The process writes nothing anywhere.
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
+
+    healthcheck:
+      # No curl in the image, but bash can open a TCP socket. It must be bash
+      # explicitly: /dev/tcp does not exist in dash, which CMD-SHELL would use.
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/7070 && printf 'GET /api/isa HTTP/1.0\\r\\n\\r\\n' >&3 && head -c 20 <&3 | grep -q 200"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 5s

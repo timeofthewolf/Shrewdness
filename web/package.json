@@ -1,0 +1,30 @@
+{
+  "name": "shrewdness-web",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^6.2.1",
+    "svelte": "^5.39.4",
+    "vite": "^7.1.7"
+  },
+  "dependencies": {
+    "@codemirror/autocomplete": "^6.20.3",
+    "@codemirror/commands": "^6.9.0",
+    "@codemirror/language": "^6.11.3",
+    "@codemirror/lint": "^6.9.7",
+    "@codemirror/search": "^6.7.1",
+    "@codemirror/state": "^6.5.2",
+    "@codemirror/view": "^6.38.3",
+    "@lezer/highlight": "^1.2.1",
+    "@replit/codemirror-emacs": "^6.1.0",
+    "@replit/codemirror-indentation-markers": "^6.5.3",
+    "@replit/codemirror-minimap": "^0.5.2",
+    "@replit/codemirror-vim": "^6.3.0"
+  }
+}

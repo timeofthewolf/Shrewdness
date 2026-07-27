@@ -1,0 +1,100 @@
+var line[128];
+var ch = 0;
+
+fn read_line(buf, max) {
+    var n = 0;
+    ch = input();
+    while (ch != '\n' && ch != -1) {
+        if (n < max - 1) {
+            buf[n] = ch;
+            n = n + 1;
+        }
+        ch = input();
+    }
+    buf[n] = 0;
+    return n;
+}
+
+fn streq(a, b) {
+    var i = 0;
+    while (a[i] != 0 && a[i] == b[i]) { i = i + 1; }
+    return a[i] == b[i];
+}
+
+var pos = 0;
+
+fn peek() {
+    while (line[pos] == ' ') { pos = pos + 1; }
+    return line[pos];
+}
+
+fn factor() {
+    var c = peek();
+
+    if (c == '(') {
+        pos = pos + 1;
+        var v = expr();
+        if (peek() == ')') { pos = pos + 1; }
+        return v;
+    }
+
+    if (c == '-') {
+        pos = pos + 1;
+        return 0 - factor();
+    }
+
+    var n = 0;
+    while (line[pos] >= '0' && line[pos] <= '9') {
+        n = n * 10 + (line[pos] - '0');
+        pos = pos + 1;
+    }
+    return n;
+}
+
+fn term() {
+    var acc = factor();
+    var c = peek();
+    while (c == '*' || c == '/' || c == '%') {
+        pos = pos + 1;
+        var rhs = factor();
+        if (c == '*') { acc = acc * rhs; }
+        if (c == '/') { acc = acc / rhs; }
+        if (c == '%') { acc = acc % rhs; }
+        c = peek();
+    }
+    return acc;
+}
+
+fn expr() {
+    var acc = term();
+    var c = peek();
+    while (c == '+' || c == '-') {
+        pos = pos + 1;
+        var rhs = term();
+        if (c == '+') { acc = acc + rhs; }
+        if (c == '-') { acc = acc - rhs; }
+        c = peek();
+    }
+    return acc;
+}
+
+puts("What is your name? ");
+read_line(line, 128);
+
+puts("Hello, ");
+puts(line);
+puts("! Type sums like (1+2)*3. Blank line quits.\n");
+
+while (1) {
+    puts("> ");
+    var n = read_line(line, 128);
+    if (n == 0) { break; }
+    if (streq(line, "quit")) { break; }
+
+    pos = 0;
+    puts("= ");
+    print(expr());
+    putchar('\n');
+}
+
+puts("bye\n");
