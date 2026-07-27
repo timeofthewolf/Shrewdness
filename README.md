@@ -97,7 +97,8 @@ left and the assembly, the gene list and the decompiled form on the right stay
 current as you type. Multi-file projects, split panes, a command palette, vim
 and emacs keymaps, an interactive terminal that talks to `input()`, and a
 step debugger that replays a run with the stack, registers and memory writes at
-each step. Full tour in [`web/README.md`](web/README.md).
+each step. It rearranges itself down to a phone rather than dropping features.
+Full tour in [`web/README.md`](web/README.md).
 
 The backend holds no database and no accounts — projects live in your browser's
 local storage, and the server just compiles, runs and traces what it is sent.

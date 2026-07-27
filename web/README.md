@@ -84,6 +84,30 @@ wired to the real actions.
 Light and dark themes follow the system by default; the toggle is in the status
 bar and in the right-click menu.
 
+## On a phone
+
+The same app, rearranged rather than cut down — every pane, the debugger and
+the terminal included, works on a 320px screen.
+
+The explorer becomes a drawer over the editor, opened from the ⊟ button at the
+left of the toolbar and closed again when you pick a file. Tools open as tabs
+in the pane you are looking at instead of splitting it, because half of a phone
+is not a pane; if a saved layout arrives with splits in it, a button in the
+toolbar merges them back. Word wrap starts on, since code cannot be scrolled
+sideways with a thumb.
+
+Two things are hover- and pointer-only, so touch gets its own way in:
+
+- The per-row buttons in the explorer — set entry, download, rename, delete —
+  are behind `:hover`. On touch each row carries a **⋯** instead, opening the
+  same menu the right button gives a mouse.
+- `input()` reads keystrokes from the console pane, which is a `div`, and no
+  on-screen keyboard opens for one. On touch the console grows a real input
+  field with **send**, **eof**, **stop** and **clear** beside it.
+
+Dragging files between folders and dragging tabs between panes stay
+pointer-only; the ⋯ menu and the tab strip cover the same ground.
+
 ## The backend
 
 `shrewdness` is one file, ~1,000 lines, and holds no database, no accounts and
@@ -217,5 +241,6 @@ editor recompiles on a 250 ms debounce and the terminal polls every 170 ms.
 | `src/lib/Terminal.svelte` | the console |
 | `src/lib/layout.svelte.js` | the split/dock tree |
 | `src/lib/Palette.svelte`, `Menu.svelte`, `Modal.svelte`, `Settings.svelte`, `Icon.svelte`, `Pane.svelte` | chrome |
+| `src/lib/media.svelte.js` | the breakpoints, as reactive state, for what CSS cannot say |
 | `src/store.svelte.js` | the API client, the ISA and examples |
 | `src/app.css` | tokens: colours, type, both themes |

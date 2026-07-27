@@ -26,6 +26,7 @@
   } from "./project.svelte.js";
   import { langForName } from "./cm.js";
   import { downloadText, downloadProjectZip } from "./download.js";
+  import { ui } from "./media.svelte.js";
   import Icon from "./Icon.svelte";
   import Menu from "./Menu.svelte";
 
@@ -266,9 +267,7 @@
     }
   }
 
-  function openMenu(e, kind, pid, path) {
-    e.preventDefault();
-    e.stopPropagation();
+  function menuItems(kind, pid, path) {
     const cur = () => { if (pid !== project.id) switchProject(pid); };
     let items = [];
     if (kind === "file") {
@@ -306,7 +305,20 @@
         { label: "Delete Project", icon: "trash", danger: true, run: () => { cur(); deleteProject(); } },
       ];
     }
-    menu = { x: e.clientX, y: e.clientY, items };
+    return items;
+  }
+
+  function openMenu(e, kind, pid, path) {
+    e.preventDefault();
+    e.stopPropagation();
+    menu = { x: e.clientX, y: e.clientY, items: menuItems(kind, pid, path) };
+  }
+
+  function openRowMenu(e, kind, pid, path) {
+    e.preventDefault();
+    e.stopPropagation();
+    const r = e.currentTarget.getBoundingClientRect();
+    menu = { x: r.right, y: r.bottom + 2, items: menuItems(kind, pid, path) };
   }
 
   function onDragStart(e, type, pid, path) {
@@ -352,7 +364,7 @@
     class:armed={confirmDel === key}
     class:drop={dropTarget === "file:" + f.name}
     style="--d:{depth}"
-    draggable="true"
+    draggable={!ui.touch}
     ondragstart={(e) => onDragStart(e, "file", pid, f.name)}
     ondragover={(e) => onDragOver(e, pid, "file:" + f.name)}
     ondragleave={() => (dropTarget = null)}
@@ -369,7 +381,7 @@
       <button
         class="label"
         title={f.name}
-        draggable="true"
+        draggable={!ui.touch}
         ondragstart={(e) => onDragStart(e, "file", pid, f.name)}
         ondragend={endDrag}
         onclick={() => { focusKey = nk(pid, key); onFile(pid, f.name); }}
@@ -380,7 +392,10 @@
         {#if isEntry}<span class="entry" title="entry file"><Icon name="play" size={9} /></span>{/if}
         {#if pid === project.id && project.diags[f.name]}<span class="errdot"></span>{/if}
       </button>
-      {#if pid === project.id}
+      {#if ui.touch}
+        <button class="icon more" aria-label="file actions"
+          onclick={(e) => openRowMenu(e, "file", pid, f.name)}><Icon name="dots" size={16} /></button>
+      {:else if pid === project.id}
         <span class="rowacts">
           {#if !isEntry && langForName(f.name) === "savvy"}
             <span class="icon" role="button" tabindex="0" title="set as entry file"
@@ -409,7 +424,7 @@
     class:armed={confirmDel === dkey}
     class:drop={dropTarget === dkey}
     style="--d:{depth}"
-    draggable="true"
+    draggable={!ui.touch}
     ondragstart={(e) => onDragStart(e, "folder", pid, dir.path)}
     ondragover={(e) => onDragOver(e, pid, dkey)}
     ondragleave={() => (dropTarget = null)}
@@ -426,7 +441,7 @@
     {:else}
       <button
         class="label"
-        draggable="true"
+        draggable={!ui.touch}
         ondragstart={(e) => onDragStart(e, "folder", pid, dir.path)}
         ondragend={endDrag}
         onclick={() => { focusKey = nk(pid, dkey); openFolder[fkey(pid, dir.path)] = !open; }}
@@ -436,7 +451,10 @@
         <span class="lead ic-folder"><Icon name={open ? "folderOpen" : "folder"} size={14} /></span>
         <span class="nm">{dir.name}</span>
       </button>
-      {#if pid === project.id}
+      {#if ui.touch}
+        <button class="icon more" aria-label="folder actions"
+          onclick={(e) => openRowMenu(e, "folder", pid, dir.path)}><Icon name="dots" size={16} /></button>
+      {:else if pid === project.id}
         <span class="rowacts">
           <span class="icon" role="button" tabindex="0" title="new file" onclick={() => newFileIn(pid, dir.path)} onkeydown={() => {}}><Icon name="newFile" size={13} /></span>
           <span class="icon" role="button" tabindex="0" title="new folder" onclick={() => newFolderIn(pid, dir.path)} onkeydown={() => {}}><Icon name="newFolder" size={13} /></span>
@@ -503,6 +521,10 @@
                 <span class="lead ic-folder"><Icon name={openProj[p.id] ? "folderOpen" : "folder"} size={15} /></span>
                 <span class="nm">{p.name}</span>
               </button>
+              {#if ui.touch}
+                <button class="icon more" aria-label="project actions"
+                  onclick={(e) => openRowMenu(e, "project", p.id, "")}><Icon name="dots" size={16} /></button>
+              {:else}
               <span class="rowacts">
                 <span class="icon" role="button" tabindex="0" title="new file" onclick={() => newFileIn(p.id)} onkeydown={() => {}}><Icon name="newFile" size={13} /></span>
                 <span class="icon" role="button" tabindex="0" title="new folder" onclick={() => newFolderIn(p.id)} onkeydown={() => {}}><Icon name="newFolder" size={13} /></span>
@@ -514,6 +536,7 @@
                   onclick={() => armDel("proj:" + p.id, () => { if (p.id !== project.id) switchProject(p.id); deleteProject(); })} onkeydown={() => {}}>
                   {#if confirmDel === "proj:" + p.id}?{:else}<Icon name="trash" size={13} />{/if}</span>
               </span>
+              {/if}
             {/if}
           </div>
 
@@ -784,6 +807,36 @@
     font: 12px var(--mono);
     padding: 1px 5px;
     margin-left: 2px;
+  }
+  .more {
+    flex: none;
+    align-self: stretch;
+    padding: 0 11px;
+    border: none;
+    background: none;
+    border-radius: 6px;
+  }
+  @media (hover: none) {
+    .explorer {
+      font-size: 14px;
+    }
+    .row {
+      min-height: 38px;
+      padding-right: 2px;
+    }
+    .label {
+      padding: 8px 2px 8px 6px;
+    }
+    .sechead {
+      padding: 9px 10px 9px 8px;
+    }
+    .sechead .icon,
+    .xhead .icon {
+      padding: 9px 10px;
+    }
+    .rename {
+      font-size: 16px;
+    }
   }
   .sub {
     padding: 2px 8px 2px 40px;

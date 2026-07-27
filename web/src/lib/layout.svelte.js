@@ -1,4 +1,5 @@
 import { project, closeTab } from "./project.svelte.js";
+import { isNarrow } from "./media.svelte.js";
 
 const KEY = "shrewdness-ide-dock";
 let nid = 1;
@@ -159,8 +160,20 @@ export function toggleTool(kind) {
     return;
   }
   const f = focusedLeaf();
-  const pos = kind === "terminal" ? "bottom" : "right";
+  const pos = isNarrow() ? "center" : kind === "terminal" ? "bottom" : "right";
   moveKey(kind, f.id, pos);
+}
+
+export function mergeAll() {
+  const leaves = allLeaves();
+  if (leaves.length < 2) return;
+  const keys = [];
+  for (const lf of leaves) for (const k of lf.keys) if (!keys.includes(k)) keys.push(k);
+  const wanted = leafById(L.focused)?.active;
+  L.root = leaf(keys, keys.includes(wanted) ? wanted : keys[0] ?? null);
+  L.focused = L.root.id;
+  if (isFile(L.root.active)) { L.activeFile = fileName(L.root.active); project.active = L.activeFile; }
+  save();
 }
 
 export function splitActive(dir = "right") {

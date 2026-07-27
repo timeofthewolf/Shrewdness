@@ -61,6 +61,10 @@
     position: fixed;
     z-index: 131;
     min-width: 190px;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100dvh - 16px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -121,5 +125,18 @@
     height: 1px;
     background: var(--grid);
     margin: 4px 6px;
+  }
+
+  @media (hover: none) {
+    .ctxmenu {
+      min-width: 210px;
+    }
+    .mi {
+      padding: 10px 11px;
+      font-size: 14px;
+    }
+    .mi-kbd {
+      display: none;
+    }
   }
 </style>

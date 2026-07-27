@@ -60,9 +60,14 @@
   .strip {
     display: flex;
     gap: 1px;
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
     border-radius: 5px;
     background: var(--grid);
+  }
+  .strip::-webkit-scrollbar {
+    height: 0;
   }
   .cell {
     flex: 1 1 0;

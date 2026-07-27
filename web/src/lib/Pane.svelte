@@ -2,6 +2,7 @@
   import Pane from "./Pane.svelte";
   import Icon from "./Icon.svelte";
   import { L, moveKey, activate, closeKey, setRatio } from "./layout.svelte.js";
+  import { ui } from "./media.svelte.js";
 
   let { node, tab, body } = $props();
 
@@ -84,7 +85,7 @@
           class:cur={node.active === key}
           role="tab"
           tabindex="0"
-          draggable="true"
+          draggable={!ui.touch}
           aria-selected={node.active === key}
           ondragstart={(e) => onTabDragStart(e, key)}
           ondragend={onTabDragEnd}
@@ -125,10 +126,14 @@
   .psplit.row { flex-direction: row; }
   .psplit.col { flex-direction: column; }
   .pchild { flex-shrink: 1; flex-basis: 0; min-width: 0; min-height: 0; overflow: hidden; display: flex; }
-  .presize { flex: none; background: transparent; z-index: 6; transition: background 0.15s; }
+  .presize { flex: none; background: transparent; z-index: 6; transition: background 0.15s; touch-action: none; }
   .presize.row { width: 6px; margin: 0 -3px; cursor: col-resize; }
   .presize.col { height: 6px; margin: -3px 0; cursor: row-resize; }
   .presize:hover { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+  @media (pointer: coarse) {
+    .presize.row { width: 16px; margin: 0 -8px; }
+    .presize.col { height: 16px; margin: -8px 0; }
+  }
 
   .pleaf { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; background: var(--page); }
   .pstrip {
@@ -148,6 +153,12 @@
   .ptclose { border: none; background: none; padding: 0 2px; color: transparent; border-radius: 4px; line-height: 1; }
   .ptab:hover .ptclose, .ptab.cur .ptclose { color: var(--muted); }
   .ptclose:hover { color: var(--ink); background: color-mix(in srgb, var(--ink) 10%, transparent); }
+
+  @media (hover: none) {
+    .pstrip { min-height: 42px; }
+    .ptab { padding: 0 4px 0 14px; font-size: 13px; }
+    .ptclose { color: var(--muted); padding: 8px 6px; }
+  }
 
   .pbody { flex: 1; min-height: 0; position: relative; }
   .pitem { position: absolute; inset: 0; }

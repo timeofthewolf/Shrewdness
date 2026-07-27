@@ -242,7 +242,7 @@
     font-style: normal;
   }
   .range input {
-    width: 220px;
+    width: min(220px, 50%);
   }
   .toggle input {
     width: 34px;
@@ -333,5 +333,33 @@
   }
   .grow {
     flex: 1;
+  }
+
+  @media (max-width: 560px) {
+    .keys {
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
+    .row {
+      gap: 10px;
+    }
+    .seg .segbtns {
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+  }
+
+  @media (hover: none) {
+    .swatch {
+      width: 32px;
+      height: 32px;
+    }
+    .swatches {
+      gap: 10px;
+    }
+    .toggle input {
+      width: 44px;
+      height: 26px;
+    }
   }
 </style>

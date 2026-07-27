@@ -1,4 +1,6 @@
 <script>
+  import { ui } from "./media.svelte.js";
+
   let {
     log = [],
     status = "running",
@@ -12,6 +14,7 @@
   let pending = $state("");
   let focused = $state(false);
   let el = $state();
+  let inputEl = $state();
   let history = [];
   let histIdx = -1;
 
@@ -25,7 +28,14 @@
   });
 
   export function focus() {
-    el?.focus();
+    (inputEl ?? el)?.focus();
+  }
+
+  function onFieldFocus() {
+    setTimeout(() => {
+      if (el) el.scrollTop = el.scrollHeight;
+      inputEl?.scrollIntoView?.({ block: "nearest" });
+    }, 250);
   }
 
   function submit() {
@@ -107,6 +117,7 @@
   }
 </script>
 
+<div class="tshell">
 <div
   class="term"
   class:done={!live}
@@ -129,14 +140,49 @@
   {#each log as seg, i (i)}<span class={"t-" + seg.t}>{seg.s}</span>{/each}{#if live}<span
       class="t-in">{pending}</span
     ><span class="caret" class:hollow={!focused}></span>{/if}
-  {#if live && !focused && log.length === 0 && pending === ""}
+  {#if live && !focused && log.length === 0 && pending === "" && !ui.touch}
     <span class="hint">click here and type — the program is listening</span>
   {/if}
 </div>
 
+{#if ui.touch}
+  <div class="tbar" oncontextmenu={(e) => e.stopPropagation()} role="presentation">
+    <form class="tline" onsubmit={(e) => { e.preventDefault(); submit(); }}>
+      <input
+        class="tin"
+        bind:this={inputEl}
+        bind:value={pending}
+        disabled={!live}
+        placeholder={live ? "input to the program" : "the run has finished"}
+        aria-label="program input"
+        enterkeyhint="send"
+        autocapitalize="off"
+        autocomplete="off"
+        autocorrect="off"
+        spellcheck="false"
+        onfocus={onFieldFocus}
+      />
+      <button class="tb send" type="submit" disabled={!live}>send</button>
+    </form>
+    <div class="tacts">
+      <button class="tb" type="button" disabled={!live} onclick={() => oneof()}>eof</button>
+      <button class="tb stop" type="button" disabled={!live} onclick={() => onstop()}>stop</button>
+      <button class="tb" type="button" onclick={() => onclear()}>clear</button>
+    </div>
+  </div>
+{/if}
+</div>
+
 <style>
+  .tshell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 6px;
+  }
   .term {
-    height: 100%;
+    flex: 1;
     min-height: 0;
     overflow: auto;
     background: var(--page);
@@ -189,5 +235,48 @@
   .hint {
     color: var(--muted);
     font-style: italic;
+  }
+
+  @media (hover: none) {
+    .tshell {
+      padding: 6px;
+    }
+  }
+  .tbar {
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .tline {
+    display: flex;
+    gap: 6px;
+  }
+  .tin {
+    flex: 1;
+    min-width: 0;
+    font-family: var(--mono);
+  }
+  .tacts {
+    display: flex;
+    gap: 6px;
+  }
+  .tb {
+    flex: 1;
+    padding: 8px 10px;
+    font-size: 13px;
+    background: transparent;
+  }
+  .tline .tb {
+    flex: none;
+  }
+  .tb.send {
+    border-color: color-mix(in srgb, var(--accent) 55%, transparent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+  .tb.stop {
+    border-color: color-mix(in srgb, var(--crit) 45%, transparent);
+    color: var(--crit);
   }
 </style>

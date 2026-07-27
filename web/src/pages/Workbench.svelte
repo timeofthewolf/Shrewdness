@@ -10,8 +10,9 @@
   import { downloadText, downloadProjectZip } from "../lib/download.js";
   import {
     L as dock, allLeaves, activate, closeKey, openKey, toggleTool, splitActive,
-    reconcileFiles, fileKey, fileName, isFile,
+    mergeAll, reconcileFiles, fileKey, fileName, isFile,
   } from "../lib/layout.svelte.js";
+  import { ui } from "../lib/media.svelte.js";
   import CodeEditor from "../lib/CodeEditor.svelte";
   import Terminal from "../lib/Terminal.svelte";
   import Explorer from "../lib/Explorer.svelte";
@@ -28,11 +29,21 @@
   const SAVED_KEY = "shrewdness-ide-chrome";
   const SAVED = (() => { try { return JSON.parse(localStorage.getItem(SAVED_KEY)) || {}; } catch { return {}; } })();
   let sideW = $state(SAVED.side ?? 250);
-  let sideCollapsed = $state(SAVED.collapsed ?? false);
+  let sideCollapsed = $state(SAVED.collapsed ?? ui.narrow);
   function saveChrome() {
     localStorage.setItem(SAVED_KEY, JSON.stringify({ side: sideW, collapsed: sideCollapsed }));
   }
-  function toggleSidebar() { sideCollapsed = !sideCollapsed; saveChrome(); }
+  function toggleSidebar() {
+    sideCollapsed = !sideCollapsed;
+    if (!ui.narrow) saveChrome();
+  }
+  const closeDrawer = () => { if (ui.narrow) sideCollapsed = true; };
+
+  let wasWide = !ui.narrow;
+  $effect(() => {
+    if (ui.narrow && wasWide) sideCollapsed = true;
+    wasWide = !ui.narrow;
+  });
 
   let cursor = $state({ line: 1, col: 1, sels: 1 });
   let err = $state("");
@@ -52,6 +63,7 @@
   const standalone = $derived(!!activeName && lang !== "savvy");
   const runTarget = $derived(activeName ? (standalone ? activeName : project.entry) : "");
   const problems = $derived(Object.entries(project.diags).map(([file, e]) => ({ file, ...e })));
+  const paneCount = $derived(allLeaves().length);
 
   $effect(() => { void project.open; void project.id; reconcileFiles(); });
 
@@ -68,10 +80,12 @@
   function openProjectFile(id, name) {
     if (id && id !== project.id) { switchProject(id); reconcileFiles(); }
     activateFile(name);
+    closeDrawer();
   }
   function loadExample(name) {
     const ex = app.examples.find((e) => e.name === name);
     if (ex) activateFile(addFile(uniqueName(ex.name, ".savvy"), ex.src));
+    closeDrawer();
   }
 
   let unsubVim;
@@ -362,9 +376,15 @@
       {:else}
         <div class="termph">
           {#if err}<pre class="err">{err}</pre>{/if}
-          <strong>▶ run {runTarget}</strong> (or <kbd>Ctrl-Enter</kbd>) runs the program here.
-          <span class="mono">input()</span> reads what you type; <kbd>Enter</kbd> sends a line,
-          <kbd>Ctrl-D</kbd> ends input, <kbd>Ctrl-C</kbd> stops.
+          {#if ui.touch}
+            <strong>▶ run {runTarget}</strong> runs the program here.
+            <span class="mono">input()</span> reads what you type into the box below the
+            output; <em>eof</em> ends input and <em>stop</em> halts the run.
+          {:else}
+            <strong>▶ run {runTarget}</strong> (or <kbd>Ctrl-Enter</kbd>) runs the program here.
+            <span class="mono">input()</span> reads what you type; <kbd>Enter</kbd> sends a line,
+            <kbd>Ctrl-D</kbd> ends input, <kbd>Ctrl-C</kbd> stops.
+          {/if}
         </div>
       {/if}
     </div>
@@ -377,19 +397,37 @@
 <div class="ide">
   <div class="body">
     {#if !sideCollapsed}
-      <aside class="side" style:width="{sideW}px">
+      {#if ui.narrow}
+        <button class="scrim" aria-label="close the file explorer" onclick={toggleSidebar}></button>
+      {/if}
+      <aside class="side" class:drawer={ui.narrow} style:--sw="{sideW}px">
         <Explorer activeKey={activeName ? fileKey(activeName) : null}
           onFile={openProjectFile} onExample={loadExample} onSettings={() => (showSettings = true)} />
       </aside>
-      <div class="vsplit" role="separator" aria-orientation="vertical" onpointerdown={dragSide}></div>
+      {#if !ui.narrow}
+        <div class="vsplit" role="separator" aria-orientation="vertical" onpointerdown={dragSide}></div>
+      {/if}
     {/if}
 
     <div class="editorcol">
       <div class="topbar">
+        {#if ui.narrow}
+          <button class="tool sq" title="files (Ctrl-B)" aria-label="toggle the file explorer"
+            onclick={toggleSidebar}><Icon name="sidebar" size={15} /></button>
+        {/if}
         <button class="tool sq" title="command palette (Ctrl-Shift-P)" onclick={openCommandPalette}><Icon name="menu" size={15} /></button>
-        <button class="tool sq" title="new file" onclick={() => newFile(".savvy")}><Icon name="newFile" size={15} /></button>
-        <button class="tool sq" title="download current file" onclick={downloadActive}><Icon name="download" size={15} /></button>
-        <button class="tool sq" title="split editor right (Ctrl-Shift-\)" onclick={() => splitActive("right")}><Icon name="panel" size={15} /></button>
+        {#if !ui.phone}
+          <button class="tool sq" title="new file" onclick={() => newFile(".savvy")}><Icon name="newFile" size={15} /></button>
+          <button class="tool sq" title="download current file" onclick={downloadActive}><Icon name="download" size={15} /></button>
+        {/if}
+        {#if ui.narrow}
+          {#if paneCount > 1}
+            <button class="tool sq" title="merge the split panes back together" aria-label="merge split panes"
+              onclick={mergeAll}><Icon name="panel" size={15} /></button>
+          {/if}
+        {:else}
+          <button class="tool sq" title="split editor right (Ctrl-Shift-\)" onclick={() => splitActive("right")}><Icon name="panel" size={15} /></button>
+        {/if}
         <span class="sep"></span>
         <button class="tool sq" title="compiler" onclick={() => toggleTool("compiler")}><Icon name="build" size={15} /></button>
         <button class="tool sq" title="genome inspector" onclick={() => toggleTool("inspector")}><Icon name="dna" size={15} /></button>
@@ -405,16 +443,20 @@
 
   <div class="statusbar">
     <span class="sb ico" class:alert={problems.length > 0}><Icon name={problems.length ? "warn" : "check"} size={13} /> {problems.length}</span>
-    <span class="sb">{project.name} · ▶ {basename(project.entry)}</span>
+    <span class="sb ellip">{project.name} · ▶ {basename(project.entry)}</span>
     {#if session && session.state !== "done"}
       <button class="sb live" onclick={() => openKey("terminal", true)}>{session.state === "waiting" ? "waiting for input" : "running"}</button>
     {/if}
     {#if settings.keymap === "vim" && vimMode}<span class="sb mode">-- {vimMode.toUpperCase()} --</span>{/if}
     <span class="grow"></span>
-    {#if activeName}<span class="sb num">Ln {cursor.line}, Col {cursor.col}{cursor.sels > 1 ? ` · ${cursor.sels} cursors` : ""}</span>{/if}
-    <button class="sb ico" class:on={!sideCollapsed} title="toggle sidebar (Ctrl-B)" onclick={toggleSidebar}><Icon name="sidebar" size={13} /></button>
-    <button class="sb ico" class:on={settings.minimap} title="toggle minimap" onclick={() => setSetting("minimap", !settings.minimap)}><Icon name="map" size={13} /></button>
-    <button class="sb" title="cycle keybindings" onclick={cycleKeymap}>{settings.keymap === "standard" ? "standard keys" : settings.keymap}</button>
+    {#if activeName && !ui.phone}<span class="sb num">Ln {cursor.line}, Col {cursor.col}{cursor.sels > 1 ? ` · ${cursor.sels} cursors` : ""}</span>{/if}
+    {#if !ui.narrow}
+      <button class="sb ico" class:on={!sideCollapsed} title="toggle sidebar (Ctrl-B)" onclick={toggleSidebar}><Icon name="sidebar" size={13} /></button>
+    {/if}
+    {#if !ui.phone}
+      <button class="sb ico" class:on={settings.minimap} title="toggle minimap" onclick={() => setSetting("minimap", !settings.minimap)}><Icon name="map" size={13} /></button>
+      <button class="sb" title="cycle keybindings" onclick={cycleKeymap}>{settings.keymap === "standard" ? "standard keys" : settings.keymap}</button>
+    {/if}
     <button class="sb ico" title="settings" onclick={() => (showSettings = true)}><Icon name="gear" size={14} /></button>
     <button class="sb ico" title="terminal (Ctrl-`)" onclick={() => toggleTool("terminal")}><Icon name="terminal" size={13} /></button>
   </div>
@@ -428,10 +470,26 @@
 
 <style>
   .ide { height: 100%; display: flex; flex-direction: column; background: var(--page); }
-  .body { flex: 1; display: flex; min-height: 0; }
-  .side { flex: none; min-width: 190px; background: var(--surface); border-right: 1px solid var(--border); overflow: hidden; }
-  .vsplit { flex: none; width: 5px; margin: 0 -2px; z-index: 5; cursor: col-resize; background: transparent; transition: background 0.15s; }
+  .body { flex: 1; display: flex; min-height: 0; position: relative; }
+  .side { flex: none; width: var(--sw); min-width: 190px; background: var(--surface); border-right: 1px solid var(--border); overflow: hidden; }
+  .vsplit { flex: none; width: 5px; margin: 0 -2px; z-index: 5; cursor: col-resize; background: transparent; transition: background 0.15s; touch-action: none; }
   .vsplit:hover { background: color-mix(in srgb, var(--accent) 40%, transparent); }
+
+  .side.drawer {
+    position: absolute; z-index: 30; top: 0; bottom: 0; left: 0;
+    width: min(86vw, 320px); min-width: 0;
+    padding-left: env(safe-area-inset-left);
+    box-shadow: 0 0 44px rgba(0, 0, 0, 0.4);
+    animation: slidein 0.16s cubic-bezier(0.2, 0.9, 0.3, 1);
+  }
+  @keyframes slidein { from { transform: translateX(-100%); } }
+  .scrim {
+    position: absolute; inset: 0; z-index: 25;
+    border: none; border-radius: 0; padding: 0;
+    background: color-mix(in srgb, #000 38%, transparent);
+    animation: scrimin 0.16s ease;
+  }
+  @keyframes scrimin { from { opacity: 0; } }
 
   .editorcol { flex: 1; min-width: 0; display: flex; flex-direction: column; }
   .topbar { flex: none; display: flex; align-items: center; gap: 5px; padding: 4px 10px; background: var(--surface); border-bottom: 1px solid var(--border); min-height: 37px; }
@@ -459,8 +517,16 @@
   .tabname { overflow: hidden; text-overflow: ellipsis; }
   .errdot { width: 7px; height: 7px; border-radius: 50%; background: var(--crit); }
 
-  .statusbar { flex: none; display: flex; align-items: center; gap: 2px; background: var(--accent); color: var(--accent-ink); padding: 0 6px; min-height: 24px; font-size: 11.5px; }
-  .sb { border: none; background: none; border-radius: 4px; color: var(--accent-ink); padding: 1px 8px; font-size: 11.5px; }
+  .statusbar {
+    flex: none; display: flex; align-items: center; gap: 2px;
+    background: var(--accent); color: var(--accent-ink);
+    padding: 0 6px; min-height: 24px; font-size: 11.5px;
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: max(6px, env(safe-area-inset-left));
+    padding-right: max(6px, env(safe-area-inset-right));
+  }
+  .sb { flex: none; border: none; background: none; border-radius: 4px; color: var(--accent-ink); padding: 1px 8px; font-size: 11.5px; }
+  .sb.ellip { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   button.sb:hover { background: rgba(255, 255, 255, 0.18); }
   .sb.alert { font-weight: 700; }
   .sb.live { background: rgba(255, 255, 255, 0.16); font-weight: 600; }
@@ -468,11 +534,31 @@
   .sb.ico { display: inline-flex; align-items: center; gap: 4px; }
   .sb.ico.on { background: rgba(255, 255, 255, 0.22); }
 
-  .toast { position: absolute; right: 18px; bottom: 34px; background: var(--ink); color: var(--page); padding: 7px 14px; border-radius: 8px; font-size: 12.5px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); z-index: 40; }
+  .toast {
+    position: absolute; right: 18px; bottom: calc(34px + env(safe-area-inset-bottom));
+    background: var(--ink); color: var(--page); padding: 7px 14px; border-radius: 8px;
+    font-size: 12.5px; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3); z-index: 40;
+  }
 
   @media (max-width: 820px) {
-    .body { flex-direction: column; }
-    .side { width: 100% !important; max-height: 220px; border-right: none; border-bottom: 1px solid var(--border); }
-    .vsplit { display: none; }
+    .topbar { overflow-x: auto; scrollbar-width: none; }
+    .topbar::-webkit-scrollbar { height: 0; }
+    .statusbar { overflow-x: auto; scrollbar-width: none; }
+    .statusbar::-webkit-scrollbar { height: 0; }
+  }
+
+  @media (max-width: 560px) {
+    .topbar { gap: 2px; padding: 3px 6px; }
+    .tool.sq { padding: 5px 6px; }
+    .run { padding: 4px 10px; }
+    .toast { left: 12px; right: 12px; text-align: center; }
+  }
+
+  @media (hover: none) {
+    .tool.sq { padding: 8px 9px; }
+    .run { padding: 7px 14px; }
+    .kid { padding: 6px 12px; }
+    .statusbar { min-height: 38px; }
+    .sb { padding: 9px 10px; }
   }
 </style>

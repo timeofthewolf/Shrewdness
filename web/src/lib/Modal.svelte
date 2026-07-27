@@ -53,7 +53,7 @@
     border-radius: 14px;
     box-shadow: 0 24px 70px rgba(0, 0, 0, 0.4);
     width: min(560px, 100%);
-    max-height: min(82vh, 720px);
+    max-height: min(82dvh, 720px);
     display: flex;
     flex-direction: column;
     animation: pop 0.14s cubic-bezier(0.2, 0.9, 0.3, 1.2);
@@ -92,5 +92,31 @@
   .content {
     overflow: auto;
     padding: 16px 18px 20px;
+    overscroll-behavior: contain;
+  }
+
+  @media (hover: none) {
+    .x {
+      padding: 7px 12px;
+    }
+  }
+
+  @media (max-width: 560px) {
+    .backdrop {
+      padding: 10px max(10px, env(safe-area-inset-left))
+        max(10px, env(safe-area-inset-bottom))
+        max(10px, env(safe-area-inset-right));
+    }
+    .modal,
+    .modal.wide {
+      width: 100%;
+      max-height: 92dvh;
+    }
+    header {
+      padding: 12px 14px;
+    }
+    .content {
+      padding: 14px 14px 18px;
+    }
   }
 </style>

@@ -117,6 +117,8 @@ body {
   color: var(--ink);
   font: 14px/1.5 var(--sans);
   -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  -webkit-text-size-adjust: 100%;
 }
 
 h1,
@@ -329,4 +331,51 @@ textarea {
 }
 .cm-sp-close {
   margin-left: 2px;
+}
+
+@media (hover: none) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+    padding: 7px 10px;
+  }
+
+  input[type="checkbox"],
+  input[type="radio"],
+  input[type="range"] {
+    padding: 0;
+  }
+
+  button {
+    padding: 7px 14px;
+  }
+
+  ::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+}
+
+@media (max-width: 560px) {
+  .cm-host .cm-editor .cm-lineNumbers .cm-gutterElement {
+    padding: 0 5px 0 6px;
+  }
+
+  .cm-host .cm-panels.cm-panels-top {
+    right: 6px;
+    left: 6px;
+  }
+  .cm-search-panel {
+    min-width: 0;
+  }
+  .cm-sp-input {
+    min-width: 60px;
+  }
+}
+
+@media (pointer: coarse) {
+  .cm-host .cm-content {
+    padding-bottom: 35vh;
+  }
 }

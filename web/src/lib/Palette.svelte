@@ -200,4 +200,39 @@
     color: var(--muted);
     font-size: 13px;
   }
+
+  @media (max-width: 560px) {
+    .pal-backdrop {
+      padding: 8px 8px 0;
+      align-items: stretch;
+      flex-direction: column;
+    }
+    .pal {
+      width: 100%;
+    }
+    .pal-list {
+      max-height: 60dvh;
+    }
+    .pal-label {
+      flex: 0 1 auto;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pal-sub {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  @media (hover: none) {
+    .pal-item {
+      padding: 11px 12px;
+      font-size: 14px;
+    }
+    .pal-search input {
+      font-size: 16px;
+    }
+  }
 </style>

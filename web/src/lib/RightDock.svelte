@@ -326,4 +326,27 @@
   .outp { margin-top: 3px; font-size: 12px; white-space: pre-wrap; word-break: break-all; background: var(--page); border-radius: 5px; padding: 4px 6px; min-height: 18px; }
   .dfoot { flex: none; font-size: 11px; color: var(--muted); padding: 4px 8px; border-top: 1px solid var(--grid); }
   .muted { color: var(--muted); }
+
+  @media (max-width: 820px) {
+    .dbgmain { flex-direction: column; }
+    .code { flex: none; height: 38%; min-height: 110px; border-right: none; border-bottom: 1px solid var(--grid); }
+    .watch { flex: 1; min-height: 0; }
+    .dbgbar, .dctl { flex-wrap: wrap; }
+    .di { flex: 1; min-width: 120px; }
+    .di input, .di input.num { flex: 1; width: auto; min-width: 0; }
+    .scrub { flex: 1 0 100%; order: 1; }
+    .stepn { order: 2; }
+    .ilabel { width: auto; max-width: 40%; }
+    .legend { padding-left: 0; }
+  }
+
+  @media (hover: none) {
+    .dbgbar .run { padding: 7px 12px; }
+    .fmtseg button { padding: 6px 14px; }
+    .dtab { padding: 9px 11px; }
+    .sbtn { padding: 7px 11px; font-size: 13px; }
+    .mini { padding: 6px 11px; }
+    .code .dline { padding: 3px 8px 3px 4px; }
+    .diffsel select { padding: 7px 8px; }
+  }
 </style>

@@ -39,7 +39,7 @@ function load() {
     if (saved && typeof saved === "object") return { ...DEFAULTS, ...saved };
   } catch {
   }
-  return { ...DEFAULTS };
+  return { ...DEFAULTS, lineWrapping: matchMedia("(max-width: 820px)").matches };
 }
 
 export const settings = $state(load());
