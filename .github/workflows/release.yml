@@ -76,6 +76,21 @@ jobs:
           done
           echo "shrewd_demo not found" >&2; exit 1
 
+      - name: No redistributable runtime
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $bad = @()
+          foreach ($exe in Get-ChildItem -Recurse -Filter *.exe build\Release) {
+            $text = [Text.Encoding]::ASCII.GetString([IO.File]::ReadAllBytes($exe.FullName))
+            if ($text -match 'MSVCP140|VCRUNTIME140') { $bad += $exe.Name }
+          }
+          if ($bad) {
+            Write-Error "links the MSVC redistributable: $($bad -join ', ')"
+            exit 1
+          }
+          Write-Host "no redistributable dependency"
+
       - name: Stage
         shell: bash
         run: |
