@@ -8,6 +8,5 @@ target_link_libraries(net PUBLIC Threads::Threads)
 
 if(WIN32)
     target_link_libraries(net PUBLIC ws2_32)
-    # Winsock needs Vista or later for inet_ntop.
     target_compile_definitions(net PUBLIC _WIN32_WINNT=0x0600 WIN32_LEAN_AND_MEAN NOMINMAX)
 endif()

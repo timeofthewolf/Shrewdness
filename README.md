@@ -54,8 +54,25 @@ docker compose up --build      # then open http://localhost:7070/
 ```
 
 Prebuilt binaries for Linux, macOS and Windows are on the
-[releases page](https://github.com/timeofthewolf/Shrewdness/releases); see
-[RELEASING.md](RELEASING.md) for what's in each archive and how they're made.
+[releases page](https://github.com/timeofthewolf/Shrewdness/releases).
+
+## The desktop app
+
+`desktop/` wraps the IDE as an Electron application: it starts `shrewdness` on a
+free port, waits for it, and puts the workbench in a native window. The backend
+is a child process, so it goes away when you close the app.
+
+```sh
+cmake --build build -j                       # the backend it launches
+cd web && npm run build && cd ..             # the front end it serves
+cd desktop && npm install && npm start
+```
+
+`npm run dist` packages it. That produces an AppImage and a tarball on Linux,
+an NSIS installer and a zip on Windows, a dmg and a zip on macOS — each with the
+`shrewdness` binary, `web/` and `examples/` bundled in. Put the binary for the
+platform you are packaging in `desktop/resources/bin/` first; the packager takes
+it from there rather than building it.
 
 ## The `shrewdc` toolchain
 
