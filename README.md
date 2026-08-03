@@ -62,9 +62,19 @@ Prebuilt binaries for Linux, macOS and Windows are on the
 free port, waits for it, and puts the workbench in a native window. The backend
 is a child process, so it goes away when you close the app.
 
-Drag a tab out of the window and it becomes a window of its own. The two share
-one project — edit a file in either and the other picks it up — but each keeps
-its own pane layout, so a detached window is a view, not a copy.
+Drag a tab out of the window and it becomes a window of its own; drag it onto
+another window and it moves there instead, closing the window it left if that
+was its last tab. Windows share one project — edit a file in either and the
+other picks it up — but each keeps its own pane layout, so a window is a view,
+not a copy.
+
+It also edits real files. **Open a folder from disk** in the explorer (or pass
+one on the command line) and the explorer shows what is actually there: `.savvy`,
+`.asm` and `.shrewd` files, real subfolders, with `node_modules`, `.git` and
+build directories skipped. Edits are written back to disk a moment after you
+stop typing, and changes made outside the IDE appear in it. Without a folder
+open, projects live in the browser's local storage exactly as they do on the
+web.
 
 ```sh
 cmake --build build -j                       # the backend it launches

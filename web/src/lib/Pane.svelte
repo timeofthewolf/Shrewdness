@@ -13,13 +13,16 @@
     L.drag = { key };
     try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("application/x-shrewd-tab", key); } catch {}
   }
-  function onTabDragEnd(e, key) {
+  async function onTabDragEnd(e, key) {
     const outside = e.dataTransfer?.dropEffect === "none";
-    if (outside && isDesktop && keyCount() > 1) {
-      if (detachTab(key, e.screenX, e.screenY)) detachKey(key);
-    }
+    const x = e.screenX, y = e.screenY;
     L.drag = null;
     dropZone = null;
+    if (!outside || !isDesktop) return;
+    const where = await detachTab(key, x, y, keyCount() < 2);
+    if (where !== "moved" && where !== "detached") return;
+    detachKey(key);
+    if (keyCount() === 0) window.close();
   }
 
   function zoneAt(e) {

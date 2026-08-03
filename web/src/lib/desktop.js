@@ -2,12 +2,18 @@ const bridge = typeof window !== "undefined" ? window.shrewdness : null;
 
 export const isDesktop = !!bridge?.desktop;
 
-export function detachTab(key, x, y) {
-  if (!isDesktop) return false;
+export async function detachTab(key, x, y, last) {
+  if (!isDesktop) return "ignored";
   try {
-    bridge.detachTab({ key, x, y });
-    return true;
+    return await bridge.detachTab({ key, x, y, last });
   } catch {
-    return false;
+    return "ignored";
   }
+}
+
+export function onAdoptTab(fn) {
+  if (!isDesktop) return;
+  try {
+    bridge.onAdoptTab(fn);
+  } catch {}
 }

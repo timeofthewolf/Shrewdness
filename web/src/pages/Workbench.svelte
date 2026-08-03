@@ -13,6 +13,8 @@
     mergeAll, reconcileFiles, fileKey, fileName, isFile,
   } from "../lib/layout.svelte.js";
   import { ui } from "../lib/media.svelte.js";
+  import { isDesktop } from "../lib/desktop.js";
+  import { isLocal, localFolder, openLocalFolder, closeLocalFolder } from "../lib/localfs.svelte.js";
   import CodeEditor from "../lib/CodeEditor.svelte";
   import Terminal from "../lib/Terminal.svelte";
   import Explorer from "../lib/Explorer.svelte";
@@ -284,6 +286,14 @@
       { label: "Export workspace (.json)", icon: "download", run: () => downloadText("shrewdness-workspace.json", exportWorkspace()) },
       { label: "Import workspace…", icon: "upload", run: triggerImport },
       { label: "Set entry to current file", icon: "play", run: () => activeName && setEntry(activeName) },
+      ...(isDesktop
+        ? [
+            { label: "Open a folder from disk…", icon: "folderOpen", run: openLocalFolder },
+            ...(isLocal()
+              ? [{ label: `Close folder ${localFolder.name}`, icon: "close", run: closeLocalFolder }]
+              : []),
+          ]
+        : []),
       { label: "Open settings", icon: "gear", run: () => (showSettings = true) },
       { label: "Keymap: Standard", icon: "menu", run: km("standard") },
       { label: "Keymap: Vim", icon: "menu", run: km("vim") },

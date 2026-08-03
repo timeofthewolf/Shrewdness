@@ -4,6 +4,7 @@ const { createServer } = require("node:net");
 const path = require("node:path");
 const fs = require("node:fs");
 const buildMenu = require("./menu");
+const files = require("./files");
 
 const packaged = app.isPackaged;
 const root = packaged ? process.resourcesPath : path.join(__dirname, "..");
@@ -160,17 +161,41 @@ function createWindow(opts = {}) {
   return win;
 }
 
-ipcMain.handle("shrewdness:detach", (_e, { key, x, y } = {}) => {
-  if (!serverUrl || typeof key !== "string") return false;
-  const px = Number.isFinite(x) ? Math.round(x) - 120 : undefined;
-  const py = Number.isFinite(y) ? Math.round(y) - 40 : undefined;
-  createWindow({ detach: key, x: px, y: py });
-  return true;
+function windowAt(x, y, exclude) {
+  if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+  for (const w of BrowserWindow.getAllWindows()) {
+    if (w.isDestroyed() || w.webContents.id === exclude) continue;
+    const b = w.getBounds();
+    if (x >= b.x && x < b.x + b.width && y >= b.y && y < b.y + b.height) return w;
+  }
+  return null;
+}
+
+ipcMain.handle("shrewdness:detach", (e, { key, x, y, last } = {}) => {
+  if (!serverUrl || typeof key !== "string") return "ignored";
+  const target = windowAt(x, y, e.sender.id);
+  if (!target && last) return "ignored";
+  if (target) {
+    target.webContents.send("shrewdness:adopt", key);
+    target.focus();
+    return "moved";
+  }
+  createWindow({
+    detach: key,
+    x: Number.isFinite(x) ? Math.round(x) - 120 : undefined,
+    y: Number.isFinite(y) ? Math.round(y) - 40 : undefined,
+  });
+  return "detached";
 });
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
 } else {
+  const argFolder = process.argv
+    .slice(1)
+    .find((a) => !a.startsWith("-") && a !== "." && fs.existsSync(a) && fs.statSync(a).isDirectory());
+  if (argFolder) files.setCliFolder(argFolder);
+  files.register();
   app.whenReady().then(start);
   app.on("second-instance", () => {
     const [win] = BrowserWindow.getAllWindows();
@@ -182,6 +207,7 @@ if (!app.requestSingleInstanceLock()) {
   app.on("window-all-closed", () => app.quit());
   app.on("before-quit", stopBackend);
   app.on("will-quit", stopBackend);
+  app.on("will-quit", files.disposeAll);
 
   process.on("exit", stopBackend);
   for (const sig of ["SIGINT", "SIGTERM", "SIGHUP"]) {

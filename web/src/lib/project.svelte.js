@@ -130,12 +130,18 @@ function snapshotCurrent() {
 }
 
 let lastWrite = "";
+let persistHook = null;
+
+export function setPersistHook(fn) {
+  persistHook = fn;
+}
 
 function persist() {
   const i = ws.projects.findIndex((p) => p.id === project.id);
   if (i >= 0) ws.projects[i] = snapshotCurrent();
   else ws.projects.push(snapshotCurrent());
   ws.current = project.id;
+  if (persistHook && persistHook()) return;
   lastWrite = JSON.stringify({ current: ws.current, projects: ws.projects });
   localStorage.setItem(KEY, lastWrite);
 }

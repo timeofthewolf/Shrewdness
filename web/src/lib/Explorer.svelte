@@ -28,6 +28,8 @@
   import { downloadText, downloadProjectZip } from "./download.js";
   import { ui } from "./media.svelte.js";
   import Icon from "./Icon.svelte";
+  import { isDesktop } from "./desktop.js";
+  import { isLocal, localFolder, openLocalFolder, closeLocalFolder } from "./localfs.svelte.js";
   import Menu from "./Menu.svelte";
 
   let {
@@ -482,8 +484,14 @@
   <div class="section">
     <button class="sechead" onclick={() => toggleSec("projects")}>
       <span class="chev" class:open={sec.projects}><Icon name="chevron" size={12} /></span>
-      <span class="secname">Projects</span>
+      <span class="secname">{isLocal() ? "Folder" : "Projects"}</span>
       <span class="grow"></span>
+      {#if isDesktop}
+        <span class="icon" role="button" tabindex="0"
+          title={isLocal() ? `${localFolder.root} — click to close` : "open a folder from disk"}
+          onclick={(e) => { e.stopPropagation(); isLocal() ? closeLocalFolder() : openLocalFolder(); }}
+          onkeydown={() => {}}><Icon name={isLocal() ? "close" : "folderOpen"} size={13} /></span>
+      {/if}
       <span class="icon" role="button" tabindex="0" title="import workspace (.json)"
         onclick={(e) => { e.stopPropagation(); importInput?.click(); }} onkeydown={() => {}}><Icon name="upload" size={13} /></span>
       <span class="icon" role="button" tabindex="0" title="export all projects (.json)"

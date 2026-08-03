@@ -24,7 +24,8 @@
     "files": [
       "main.js",
       "menu.js",
-      "preload.js"
+      "preload.js",
+      "files.js"
     ],
     "extraResources": [
       {

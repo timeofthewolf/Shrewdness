@@ -1,5 +1,6 @@
 import { project, closeTab } from "./project.svelte.js";
 import { isNarrow } from "./media.svelte.js";
+import { onAdoptTab } from "./desktop.js";
 
 const KEY = "shrewdness-ide-dock";
 const DETACHED = "shrewdness-detached";
@@ -229,3 +230,13 @@ export function reconcileFiles() {
   for (const n of project.open) if (!leafOf(fileKey(n))) openKey(fileKey(n), false);
   save();
 }
+
+onAdoptTab((key) => {
+  if (typeof key !== "string") return;
+  if (isFile(key)) {
+    const name = fileName(key);
+    if (!project.files.some((f) => f.name === name)) return;
+    if (!project.open.includes(name)) project.open.push(name);
+  }
+  openKey(key, true);
+});
