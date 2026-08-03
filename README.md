@@ -82,6 +82,14 @@ cd web && npm run build && cd ..             # the front end it serves
 cd desktop && npm install && npm start
 ```
 
+Neither the macOS nor the Windows build is signed by a paid developer
+certificate, so both operating systems warn on first launch. On macOS,
+right-click the app and choose **Open** rather than double-clicking (or run
+`xattr -dr com.apple.quarantine /Applications/Shrewdness.app`). On Windows,
+SmartScreen offers **More info → Run anyway**. The macOS app is ad-hoc signed so
+it runs on Apple Silicon; removing the warning entirely needs a Developer ID and
+notarisation.
+
 `npm run dist` packages it: an AppImage on Linux, an installer and a portable
 zip on Windows, a dmg on macOS, each with the `shrewdness` binary, `web/` and
 `examples/` bundled in. Put the binary for the platform you are packaging in
