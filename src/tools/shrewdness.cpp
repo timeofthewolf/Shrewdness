@@ -4,6 +4,12 @@
 #include "shrewd/isa.hpp"
 #include "shrewd/vm.hpp"
 
+#if defined(_WIN32)
+#include <windows.h>
+#elif defined(__APPLE__)
+#include <mach-o/dyld.h>
+#endif
+
 #include <algorithm>
 #include <atomic>
 #include <cctype>
@@ -946,6 +952,30 @@ http::Response serve_static(const std::string &root,
     return r;
 }
 
+fs::path executable_dir() {
+    std::error_code ec;
+#if defined(_WIN32)
+    std::wstring buf(1024, L'\0');
+    DWORD n = GetModuleFileNameW(nullptr, buf.data(),
+                                 static_cast<DWORD>(buf.size()));
+    if (n == 0 || n >= buf.size())
+        return {};
+    buf.resize(n);
+    return fs::path(buf).parent_path();
+#elif defined(__APPLE__)
+    std::uint32_t n = 0;
+    _NSGetExecutablePath(nullptr, &n);
+    std::string buf(n, '\0');
+    if (_NSGetExecutablePath(buf.data(), &n) != 0)
+        return {};
+    buf.resize(std::strlen(buf.c_str()));
+    return fs::weakly_canonical(fs::path(buf), ec).parent_path();
+#else
+    fs::path exe = fs::read_symlink("/proc/self/exe", ec);
+    return ec ? fs::path{} : exe.parent_path();
+#endif
+}
+
 std::string find_dir(const std::string &flag, const char *env,
                      const char *marker,
                      const std::vector<std::string> &fallbacks) {
@@ -955,14 +985,14 @@ std::string find_dir(const std::string &flag, const char *env,
     if (const char *e = std::getenv(env))
         cands.push_back(e);
     cands.insert(cands.end(), fallbacks.begin(), fallbacks.end());
-    std::error_code ec;
-    fs::path exe = fs::read_symlink("/proc/self/exe", ec);
-    if (!ec) {
+    const fs::path exe_dir = executable_dir();
+    if (!exe_dir.empty()) {
         for (const std::string &f : fallbacks) {
-            cands.push_back((exe.parent_path() / f).string());
-            cands.push_back((exe.parent_path().parent_path() / f).string());
+            cands.push_back((exe_dir / f).string());
+            cands.push_back((exe_dir.parent_path() / f).string());
         }
     }
+    std::error_code ec;
     for (const std::string &c : cands)
         if (fs::exists(fs::path(c) / marker, ec))
             return c;
@@ -1098,8 +1128,8 @@ int main(int argc, char **argv) {
 
     Caps caps;
     if (a.public_mode) {
-        caps.console_steps_default = 50'000'000;  // ~0.15 s of CPU
-        caps.console_steps_max = 200'000'000;     // ~0.6 s of CPU
+        caps.console_steps_default = 50'000'000;
+        caps.console_steps_max = 200'000'000;
         caps.console_mem_max = 1u << 20;
         caps.console_output_max = 1u << 18;
         caps.trace_mem_max = 1u << 18;

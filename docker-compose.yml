@@ -1,5 +1,5 @@
 # The ordinary way to run Shrewdness: locally, or behind a tunnel/proxy on a
-# server. See deploy/README.md for the full hosting notes.
+# server. See web/README.md ("Hosting it") for the full hosting notes.
 #
 #   docker compose up -d --build        # then http://localhost:7070/
 

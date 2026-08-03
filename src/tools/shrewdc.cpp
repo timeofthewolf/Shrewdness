@@ -2,6 +2,11 @@
 #include "shrewd/asm.hpp"
 #include "shrewd/shrewd.hpp"
 
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#endif
+
 #include <cstdlib>
 #include <filesystem>
 #include <fstream>
@@ -159,6 +164,10 @@ int main(int argc, char **argv) {
         Limits limits;
         limits.max_steps = steps;
         VM vm(limits);
+#ifdef _WIN32
+        _setmode(_fileno(stdin), _O_BINARY);
+        _setmode(_fileno(stdout), _O_BINARY);
+#endif
         StreamIo io(std::cin, std::cout);
         const Result r = vm.run(g, io, seed);
         std::cout.flush();

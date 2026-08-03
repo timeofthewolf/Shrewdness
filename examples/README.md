@@ -1,8 +1,8 @@
 # Examples
 
-Each example demonstrates one thing. All of them compile with `shrewdc` and are
-also compiled and checked on every run of `shrewd_demo` — they are the test
-corpus, so they cannot silently rot.
+Each example demonstrates one thing. All of them compile with `shrewdc`, and all
+of them are compiled and checked on every run of `shrewd_demo` — they're the
+test corpus, so they can't quietly rot.
 
 ```sh
 ./build/shrewdc run examples/<name>.savvy          # compile and run
@@ -10,11 +10,11 @@ corpus, so they cannot silently rot.
 ./build/shrewdc genes examples/<name>.savvy        # the raw genome
 ```
 
-They are also bundled into the [Shrewdness IDE](../web/README.md), which lists
-them in the Explorer — opening one copies it into your project, editable.
+They're bundled into the [Shrewdness IDE](../web/README.md) too, which lists
+them in the Explorer. Opening one copies it into your project, editable.
 
-None of them need a `--steps` budget — they all halt on their own (except the
-REPL and calculator, which halt when input runs out).
+None of them need a `--steps` budget; they all halt on their own, except the
+REPL and the calculator, which halt when input runs out.
 
 ## The language
 
@@ -27,6 +27,9 @@ REPL and calculator, which halt when input runs out).
 
 ## Talking to a terminal
 
+![Running the calculator in the IDE console and typing expressions at
+it](../docs/console.gif)
+
 | example | demonstrates | try |
 |---|---|---|
 | [`calculator.savvy`](calculator.savvy) | recursive-descent parsing with **mutual recursion** (`factor` calls `expr`); loops forever by design, stops only at end of input | `echo "(12+34)*2" \| shrewdc run examples/calculator.savvy` → `92` |
@@ -37,9 +40,9 @@ REPL and calculator, which halt when input runs out).
 | example | demonstrates | try |
 |---|---|---|
 | [`replicator.savvy`](replicator.savvy) | complete self-replication in four lines: `self[i]` reads the running genome, `emit` builds the child, `spawn` commits it | `shrewdc run examples/replicator.savvy --trace` → `1 offspring` |
-| [`mutator.savvy`](mutator.savvy) | a replicator that perturbs its own child — the rate is a literal in the genome, so it is copied along with everything else | `shrewdc run examples/mutator.savvy --seed 7 --trace` |
+| [`mutator.savvy`](mutator.savvy) | a replicator that perturbs its own child — the rate is a literal in the genome, so it gets copied along with everything else | `shrewdc run examples/mutator.savvy --seed 7 --trace` |
 
-Neither prints anything — their product is a child genome, not text. Capture it
+Neither prints anything. Their product is a child genome, not text. Capture it
 with `--offspring`; the children are genomes, so they run like anything else:
 
 ```sh
@@ -48,7 +51,7 @@ shrewdc run gen1/child0.shrewd        --offspring gen2   # the child reproduces
 diff gen1/child0.shrewd gen2/child0.shrewd               # faithful: identical
 ```
 
-The mutator is the language's central claim in miniature: vary the seed and the
+The mutator is the language's central claim in miniature. Vary the seed and the
 same genome produces exact copies or altered ones, and every one of them is a
-valid program — some of which can no longer copy themselves. See "Reproduction"
-in the [Savvy README](../src/savvy/README.md#reproduction).
+valid program — including the ones that can no longer copy themselves. See
+"Reproduction" in the [Savvy README](../src/savvy/README.md#reproduction).

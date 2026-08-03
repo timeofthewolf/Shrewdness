@@ -2,8 +2,8 @@
 
 The human-readable language that compiles to [Shrewd](../shrewd/README.md).
 
-Shrewd genomes are lists of integers — right for machines, hopeless for
-authorship. Savvy is what you actually write.
+Shrewd genomes are lists of integers. That's right for machines and hopeless for
+authorship, so Savvy is what you actually write.
 
 ```sh
 shrewdc build examples/calculator.savvy      # -> examples/calculator.shrewd
@@ -11,12 +11,13 @@ echo "12+34*2" | shrewdc run examples/calculator.shrewd
 80
 ```
 
-The relationship is deliberately one-way. **Savvy → Shrewd** is a compiler and
-is exact. **Shrewd → Savvy** (`shrewdc savvy`) is a decompiler with a guarantee
-of its own: whatever the genome — hand-written, machine-generated, random — its
-output compiles and runs, and for compiler-shaped genomes it behaves
-identically. A genome nobody wrote is under no obligation to look like anything
-a person would have written; it is only obliged to be runnable when rendered.
+The two directions are not symmetric, deliberately. **Savvy → Shrewd** is a
+compiler and it's exact. **Shrewd → Savvy** (`shrewdc savvy`) is a decompiler
+with a guarantee of its own: whatever the genome, hand-written or
+machine-generated or random, its output compiles and runs, and for
+compiler-shaped genomes it behaves identically. A genome nobody wrote is under
+no obligation to look like something a person would have written. It only has to
+be runnable when rendered.
 
 ## The shape of it
 
@@ -126,11 +127,11 @@ Standard C precedence, loosest first:
 | 6 | `*` `/` `%` |
 | 7 | unary `-` `!` |
 
-Two things differ from C, both inherited from Shrewd and both harmless:
+Two things differ from C. Both are inherited from Shrewd and both are harmless:
 
-- **`&&` and `||` do not short-circuit.** They compile to Shrewd's `AND`/`OR`,
-  which evaluate both sides. Nothing in Savvy can fault — no null, no
-  out-of-range index, no division error — so the only cost is wasted steps.
+- **`&&` and `||` don't short-circuit.** They compile to Shrewd's `AND`/`OR`,
+  which evaluate both sides. Nothing in Savvy can fault (no null, no
+  out-of-range index, no division error), so the only cost is wasted steps.
 - **`x / 0` and `x % 0` are `0`,** not a trap. Totality is the point.
 
 Arithmetic is 64-bit and wraps; comparisons yield `0` or `1`.
@@ -149,13 +150,13 @@ do { x = x + 1; } while (x < 10);
 for (var i = 0; i < 10; i = i + 1) { ... }
 ```
 
-Braces are required. `do`/`while` is the one that maps directly onto hardware —
-it is Shrewd's only native loop, and the others are built from it.
+Braces are required. `do`/`while` is the one that maps directly onto hardware:
+it's Shrewd's only native loop, and the others are built from it.
 
-`while (1)` and `while (1 == 1)` are the idiomatic infinite loops and compile
-to a bare loop with **no per-iteration test at all** (see constant folding
-below). Nothing in the language stops them; a caller's budget does
-(`--steps` on the CLI, the IDE's stop button), or `break` from inside.
+`while (1)` and `while (1 == 1)` are the idiomatic infinite loops, and they
+compile to a bare loop with **no per-iteration test at all** (see constant
+folding below). Nothing in the language stops them. A caller's budget does
+(`--steps` on the CLI, the IDE's stop button), or a `break` from inside.
 
 ## Functions
 
@@ -191,11 +192,11 @@ main, exactly as in C. The value is left on the data stack (visible in
 ## Programs can span files
 
 `include "name";` splices another file into the program at the point of the
-include — top level only, and exactly once per file, however many routes lead
-to it (a diamond of includes, or even a cycle, resolves to one copy with no
-fuss). Everything the included file defines — functions, globals, top-level
-statements — lands in the including program, in order, exactly as if the text
-had been written there.
+include. Top level only, and exactly once per file however many routes lead to
+it, so a diamond of includes, or even a cycle, resolves to one copy without
+fuss. Everything the included file defines (functions, globals, top-level
+statements) lands in the including program, in order, exactly as if the text had
+been written there.
 
 ```savvy
 // main.savvy                      // copy.savvy
@@ -204,28 +205,28 @@ copy_self(24);                         for (var i = 0; i < self.length; ...
 spawn();                           }
 ```
 
-Where names come from is the *host's* choice, not the language's: `shrewdc`
+Where names come from is the *host's* choice, not the language's. `shrewdc`
 resolves them against the including file's directory (appending `.savvy` if
 needed), the web workbench resolves them among the project's tabs, and
 `savvy::compile` takes a resolver callback, so an embedding can serve sources
-from anywhere. Errors keep their file — `copy.savvy:3:7: error: …` names the
+from anywhere. Errors keep their file, so `copy.savvy:3:7: error: …` names the
 file the mistake is actually in.
 
-One program still comes out the other end. Includes exist in Savvy only: the
-genome has no idea it was born in five files — mutation edits one flat list
-of integers, the same as ever.
+One program still comes out the other end. Includes exist in Savvy only. The
+genome has no idea it was born in five files, and mutation edits one flat list
+of integers the same as ever.
 
 Calls compile to an *index*, not an address: `f()` becomes "enter the n-th
-procedure in the genome". That is what lets a mutated genome still call what it
-meant to — see the Shrewd README, where addresses turned a do-nothing mutation
+procedure in the genome". That's what lets a mutated genome still call what it
+meant to. See the Shrewd README, where addresses turned a do-nothing mutation
 into a 77% chance of death.
 
-Recursion depth is unlimited by default — the language imposes nothing, so
-recursion goes until the host runs out of memory. The *caller* may cap it
-(`Limits::max_call_depth`); past the cap `CALL` declines to call rather than
+Recursion depth is unlimited by default. The language imposes nothing, so
+recursion goes until the host runs out of memory. The *caller* may cap it with
+`Limits::max_call_depth`, and past the cap `CALL` declines to call rather than
 failing, so the program keeps running and gets a wrong answer instead of a
-crash. Frames grow down the tape towards the globals and nothing checks for the
-collision — deep recursion with large frames will quietly scribble on your
+crash. Frames grow down the tape towards the globals, and nothing checks for the
+collision, so deep recursion with large frames will quietly scribble on your
 globals. If that matters, ask `mem.length` how much room you have.
 
 ## Builtins
@@ -300,9 +301,9 @@ for (var i = 0; i < self.length; i = i + 1) {
 spawn();
 ```
 
-That is a complete self-replicator (`examples/replicator.savvy`). There is no
-quine trick: `self[i]` reads the running genome directly, including the genes of
-that very loop.
+That's a complete self-replicator (`examples/replicator.savvy`), and there's no
+quine trick to it. `self[i]` reads the running genome directly, including the
+genes of that very loop.
 
 Mutation is then just something the copy loop *does*
 (`examples/mutator.savvy`):
@@ -319,12 +320,12 @@ spawn();
 ```
 
 `rate` is initialised from a literal, and that literal is a gene like any other.
-So the rate is copied into the child along with everything else, and a child can
-end up with a different one. Nobody outside the program tunes it.
+So the rate gets copied into the child along with everything else, and a child
+can end up with a different one. Nobody outside the program tunes it.
 
-Nothing in that loop is privileged, which is the whole point: it is ordinary
-Savvy, compiled to ordinary genes, and `rand() % rate` is an ordinary expression
-that could just as well be a condition on what is worth changing.
+Nothing in that loop is privileged, which is the whole point. It's ordinary
+Savvy compiled to ordinary genes, and `rand() % rate` is an ordinary expression
+that could just as easily be a condition on what's worth changing.
 
 ## Examples
 
@@ -445,8 +446,11 @@ knowing:
 
 ### The decompiler
 
-`decompile()` (`shrewdc savvy`) renders *any* genome — compiled, edited,
-random — as Savvy, with two tested guarantees:
+`decompile()` (`shrewdc savvy`) renders *any* genome as Savvy, whether it was
+compiled, edited or generated at random. It comes with two tested guarantees:
+
+![A raw gene list on the left, decompiled back to readable Savvy on the
+right](../../docs/decompile.png)
 
 1. **The output always compiles and runs.** Checked in the demo against every
    example and 5,000 random genomes.
@@ -501,36 +505,36 @@ lowers away, so compiler-shaped genomes come back looking hand-written:
   cell 0 gets an explicit `mem[0] = 0;` so it still reads the zero it
   originally saw — omitted when nothing in the genome can load from memory.
 
-What it cannot express, it says so and degrades — and the degraded shape is
-chosen to *halt* whenever the original halted: a `CALL` whose target is
-computed at run time is assumed 0; a loop whose continue-condition was pushed
-*before* it (each iteration would pop a different value) is unrolled when it
-is empty and its conditions are known, and otherwise runs once rather than
-spinning forever; a `BREAK` that would jump out of its procedure becomes a
-`return` (control never came back to the code below it, so falling through
-would run code the original never reached); a body whose frame traffic is too
-strange to lift keeps its raw pointer arithmetic and gets latched arguments.
-Each carries a comment saying what was approximated.
+Where it can't express something it says so and degrades, and the degraded shape
+is always chosen to *halt* whenever the original halted. A `CALL` whose target is
+computed at run time is assumed 0. A loop whose continue-condition was pushed
+*before* it (each iteration would pop a different value) is unrolled when it's
+empty and its conditions are known, and otherwise runs once rather than spinning
+forever. A `BREAK` that would jump out of its procedure becomes a `return`,
+because control never came back to the code below it and falling through would
+run code the original never reached. A body whose frame traffic is too strange
+to lift keeps its raw pointer arithmetic and gets latched arguments. Each of
+these carries a comment saying what was approximated.
 
-Honest caveats remain even for faithful round-trips: a self-inspecting genome
-(`self[i]`) sees the *recompiled* gene list, which is not the original one;
-`Result::stack` may differ, since abandoned stack values are dropped (their
-side effects are kept); and a program that reads memory it never wrote —
-uninitialised locals, out-of-range indices that wrap into old frames — sees
-the decompiler's bookkeeping (the temporaries at the top of the tape, frames
-shifted below them) instead of whatever stale data it read originally. For a
-bitwise-exact, round-trippable text form use `shrewdc asm`.
+Some caveats survive even a faithful round-trip. A self-inspecting genome
+(`self[i]`) sees the *recompiled* gene list, which isn't the original one.
+`Result::stack` may differ, since abandoned stack values are dropped (their side
+effects are kept). And a program that reads memory it never wrote — uninitialised
+locals, out-of-range indices that wrap into old frames — sees the decompiler's
+bookkeeping, meaning the temporaries at the top of the tape and the frames
+shifted below them, instead of whatever stale data it read originally. If you
+want a bitwise-exact round-trippable text form, use `shrewdc asm`.
 
 ## What Savvy is not
 
-It is a small procedural language, not C++. There are no structs, no classes, no
-templates, no floats, no `continue`, no `switch`, no function pointers, no
-multiple types. One type, one tape, and functions.
+It's a small procedural language, not C++. No structs, no classes, no templates,
+no floats, no `continue`, no `switch`, no function pointers, no second type. One
+type, one tape, and functions.
 
 ## Errors
 
 The compiler is the one part of the toolchain that can fail. Once source becomes
-a genome, nothing can fail again — that is the whole point of the split.
+a genome nothing can fail again, which is the whole point of the split.
 
 ```
 examples/calculator.savvy:12:5: error: unknown variable 'chr'

@@ -1,0 +1,139 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Tag to build and publish, e.g. v0.1.0 (must already exist)"
+        required: true
+
+permissions:
+  contents: write
+
+env:
+  VERSION: ${{ github.event.inputs.version || github.ref_name }}
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+        working-directory: web
+      - run: npm run build
+        working-directory: web
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+  build:
+    needs: web
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: linux-x86_64
+            extra: '-DCMAKE_EXE_LINKER_FLAGS=-static'
+          - os: ubuntu-22.04-arm
+            target: linux-aarch64
+            extra: '-DCMAKE_EXE_LINKER_FLAGS=-static'
+          - os: macos-14
+            target: macos-universal
+            extra: '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0'
+          - os: windows-latest
+            target: windows-x86_64
+            extra: ""
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: web-dist
+          path: web/dist
+
+      - name: Configure
+        shell: bash
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.extra }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        shell: bash
+        run: |
+          for p in build/shrewd_demo build/Release/shrewd_demo.exe; do
+            if [ -x "$p" ]; then "$p"; exit $?; fi
+          done
+          echo "shrewd_demo not found" >&2; exit 1
+
+      - name: Stage
+        shell: bash
+        run: |
+          set -euo pipefail
+          name="shrewdness-${VERSION}-${{ matrix.target }}"
+          mkdir -p "stage/$name"
+          for tool in shrewdc shrewdness; do
+            for p in "build/$tool" "build/Release/$tool.exe" "build/$tool.exe"; do
+              if [ -f "$p" ]; then cp "$p" "stage/$name/"; break; fi
+            done
+          done
+          cp -r web/dist "stage/$name/web"
+          cp -r examples "stage/$name/examples"
+          cp README.md "stage/$name/"
+          for tool in shrewdc shrewdness; do
+            ls "stage/$name/$tool" "stage/$name/$tool.exe" 2>/dev/null | head -1 \
+              || { echo "$tool missing from the archive" >&2; exit 1; }
+          done
+          ls -R "stage/$name"
+          echo "ARCHIVE=$name" >> "$GITHUB_ENV"
+
+      - name: Archive (tar.gz)
+        if: runner.os != 'Windows'
+        run: tar -C stage -czf "${ARCHIVE}.tar.gz" "${ARCHIVE}"
+
+      - name: Archive (zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "stage/$env:ARCHIVE" -DestinationPath "$env:ARCHIVE.zip"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pkg-${{ matrix.target }}
+          path: |
+            *.tar.gz
+            *.zip
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: pkg-*
+          path: dist
+          merge-multiple: true
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum * | tee SHA256SUMS
+
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh release create "$VERSION" dist/* \
+            --title "$VERSION" \
+            --generate-notes \
+            --verify-tag

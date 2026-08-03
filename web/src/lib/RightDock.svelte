@@ -38,7 +38,7 @@
       try {
         const r = await api("/api/build", p);
         if (r.ok) { build = r; err = ""; } else { build = null; err = r.error; }
-      } catch { /* offline */ }
+      } catch {}
     }, 250);
     return () => clearTimeout(ct);
   });
@@ -58,7 +58,7 @@
             ? { files: { [target.name]: target.src }, entry: target.name }
             : { files: { ...files, [target.name]: target.src }, entry: target.name });
         if (!cancelled && r.ok) diffGenes = parseGenes(r.genes);
-      } catch { /* ignore */ }
+      } catch {}
     })();
     return () => { cancelled = true; };
   });
@@ -78,7 +78,7 @@
       const r = await api("/api/trace", { ...payload(source), input: dbgInput, seed: +dbgSeed, cap: 4000 });
       if (r.ok) { trace = r; step = 0; err = ""; }
       else { trace = null; err = r.error; }
-    } catch { /* offline */ }
+    } catch {}
     running = false;
   }
   const cur = $derived(trace && trace.trace[step] ? trace.trace[step] : null);

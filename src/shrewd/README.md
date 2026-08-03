@@ -10,9 +10,9 @@ with `shrewdc` or in the [Shrewdness IDE](../../web/README.md) (see the
 ## The central constraint
 
 "C-like" and "every mutation still runs" pull in opposite directions. C syntax is
-brittle by design — one stray character and the parse fails. A language whose
-programs are randomly edited cannot have a parse step at all, because a parse
-step is a thing that can fail.
+brittle by design: one stray character and the parse fails. A language whose
+programs get randomly edited can't have a parse step at all, because a parse step
+is a thing that can fail.
 
 So the two requirements are met in different places:
 
@@ -21,12 +21,18 @@ So the two requirements are met in different places:
 - **Legibility lives in Savvy**, which compiles *to* genomes, and in the
   decompiler, which renders any genome back *as* Savvy.
 
-Machines operate on the flat form; humans read the source form. Nothing can
+Machines operate on the flat form and humans read the source form. Nothing can
 fail to parse because nothing is ever parsed.
 
 ```
 [1, 72, 41, 1, 101, 41, 1, 108, 41, 1, 108, 41, 1, 111, 41, ...]   ->   "Hello, World"
 ```
+
+The IDE's genome inspector is the same list with each gene tinted by instruction
+family, which is a quicker way to see the shape of one than reading the numbers:
+
+![The genome inspector: a coloured strip of genes with a family legend, and the
+flat disassembly below it](../../docs/genome.png)
 
 ## Why any gene sequence runs
 
@@ -42,27 +48,28 @@ Malformed control flow is given a meaning rather than an error
 left open at the end of the genome closes at the end of the genome. Block
 structure is well defined for *every* gene sequence.
 
-Guarantee 2 is not paranoia. Signed overflow and `INT64_MIN / -1` are undefined
+Guarantee 2 isn't paranoia. Signed overflow and `INT64_MIN / -1` are undefined
 behaviour in C++, and `x / 0` raises `SIGFPE` on x86. A garbled genome that
-stumbles into one must produce a boring number, not take the process down.
+stumbles into one has to produce a boring number rather than take the process
+down.
 
 **Termination is deliberately not on that list.** There used to be a third
-guarantee — a gas cap that bounded every run — and it was wrong. Deciding a
+guarantee, a gas cap that bounded every run, and it was wrong. Deciding that a
 program gets ten thousand instructions is a *policy*, and policy belongs to
-whoever is paying for the CPU, not to the language. So:
+whoever's paying for the CPU, not to the language. So:
 
 - `while (1 == 1)` runs forever.
 - Recursion recurses until the host runs out of memory.
 - `VM::run()` on a looping genome never returns unless a caller says otherwise.
 
-Every field of `Limits` is zero — unlimited — by default, and a caller that runs
-arbitrary genomes must bring its own budget. `shrewd_demo` and the IDE backend
-both do exactly that. C does not stop you writing `for (;;)`, and neither does
-this.
+Every field of `Limits` defaults to zero, meaning unlimited, so a caller that
+runs arbitrary genomes has to bring its own budget. `shrewd_demo` and the IDE
+backend both do exactly that. C doesn't stop you writing `for (;;)` and neither
+does this.
 
 What survives is the property everything else rests on: **nothing ever has to ask
-whether a genome is valid.** A genome may run forever, but it cannot be
-malformed, and it cannot crash.
+whether a genome is valid.** A genome may run forever, but it can't be malformed
+and it can't crash.
 
 ## The instruction set
 
@@ -93,23 +100,23 @@ working replicator; see the findings.)
 **The enum ordering is load-bearing.** Since `op = gene mod 56`, a ±1 change to
 a gene lands on the *neighbouring* opcode. Keeping related instructions adjacent
 (`ADD` beside `SUB`, `LT` beside `GT`) means a small edit usually causes a small
-behavioural change, so the space of genomes has gradients in it rather than
-cliffs everywhere. Appending new opcodes is safe; reordering changes what every
+behavioural change, so the space of genomes has gradients in it instead of
+cliffs everywhere. Appending new opcodes is safe. Reordering changes what every
 existing genome means.
 
 **Nothing in Shrewd refers to a position.** Blocks are matched, and procedures
-are called by *index* — `CALL` enters the n-th `PROC` in the genome, modulo how
-many exist. That is what makes the language relocatable: an edit that inserts,
+are called by *index*: `CALL` enters the n-th `PROC` in the genome, modulo how
+many exist. That's what makes the language relocatable. An edit that inserts,
 deletes or duplicates genes shifts everything after it, so anything holding an
-address is holding a number that is about to be wrong. See the findings below;
-this one was measured, not assumed.
+address is holding a number that's about to be wrong. This one was measured
+rather than assumed; see the findings below.
 
 **Loops are `do`/`while`, not `while`.** On a linear stack machine a pre-test
-`while` cannot work in two tokens: the condition code sits *before* the loop
-start, so jumping back would never re-evaluate it. `END` popping the condition
-puts the condition code *inside* the loop. `IF` + `BREAK` covers the rest. A
-pleasant accident: an empty stack pops 0, so a stray `END` exits its loop rather
-than spinning.
+`while` can't work in two tokens, because the condition code sits *before* the
+loop start and jumping back would never re-evaluate it. Having `END` pop the
+condition puts the condition code *inside* the loop instead, and `IF` + `BREAK`
+covers the rest. Pleasant accident: an empty stack pops 0, so a stray `END`
+exits its loop rather than spinning.
 
 **The return stack is separate from the data stack.** Arguments and return
 values ride the data stack; return addresses do not. Neither can clobber the
@@ -119,12 +126,12 @@ other, which is what makes recursion work without a frame-pointer dance.
 skips the block. So a compiler can simply put procedures after the main code and
 let execution walk past them — no jump over them, and no `HALT` to invent.
 
-**Turing-complete**, and not by assertion: `examples/brainfuck.savvy` is a
+**Turing-complete**, and not by assertion. `examples/brainfuck.savvy` is a
 Brainfuck interpreter that compiles to Shrewd and runs. Brainfuck is
-Turing-complete, so anything Brainfuck computes, Shrewd computes. Unbounded
-looping is real, not notional — there is no step cap unless a caller sets one.
-The tape is finite because indices have to wrap into something, which is the same
-sense in which any real computer is a finite-state machine.
+Turing-complete, so anything Brainfuck computes, Shrewd computes. The unbounded
+looping is real rather than notional, since there's no step cap unless a caller
+sets one. The tape is finite because indices have to wrap into something, which
+is the same sense in which any real computer is a finite-state machine.
 
 ### Opcode reference
 
@@ -192,29 +199,30 @@ zero, meaning unlimited:
 | `max_child_genes`, `max_offspring` | how much it may reproduce |
 | `memory_size` | RAM — the one that cannot be unlimited |
 
-The tape must have a size, because every index wraps into it; "unlimited" has no
-meaning there. So it is a *resource*: the caller decides how much RAM a program
-gets (default 65,536 cells), and the program asks with `MSIZE` (`mem.length` in
-Savvy) rather than assuming. Compiled Savvy relies on this — it lays its call
-frames out from whatever `MSIZE` reports, so the same genome runs correctly on a
-300-cell tape or a 50,000-cell one.
+The tape has to have a size, because every index wraps into it, so "unlimited"
+means nothing there. It's a *resource* instead: the caller decides how much RAM a
+program gets (default 65,536 cells), and the program asks with `MSIZE`
+(`mem.length` in Savvy) rather than assuming. Compiled Savvy relies on this. It
+lays its call frames out from whatever `MSIZE` reports, so the same genome runs
+correctly on a 300-cell tape or a 50,000-cell one.
 
-At the cap, nothing faults: a push past `stack_limit` is dropped, an `EMIT` past
-`max_child_genes` is dropped, a `CALL` past `max_call_depth` declines to call,
-a `SPAWN` past `max_offspring` commits nothing. Only `max_steps` halts the run,
-and then `Result::halt` says `OutOfGas` rather than `Completed`.
+Nothing faults at the cap. A push past `stack_limit` is dropped, an `EMIT` past
+`max_child_genes` is dropped, a `CALL` past `max_call_depth` declines to call, a
+`SPAWN` past `max_offspring` commits nothing. Only `max_steps` halts the run, and
+then `Result::halt` says `OutOfGas` instead of `Completed`.
 
-Two things follow that are worth being explicit about:
+Two consequences worth being explicit about:
 
 - **An unbudgeted caller can hang.** `VM::run()` on `while (1 == 1)` never
-  returns. That is the intended behaviour, and it means a caller running
-  untrusted genomes must impose a budget or run them somewhere it can kill
-  them. (The IDE backend does the latter: each console session runs on its own
-  thread, with a stop button wired to it.)
+  returns. That's the intended behaviour, and it means a caller running untrusted
+  genomes has to impose a budget or run them somewhere it can kill them. The IDE
+  backend does the latter: each console session runs on its own thread with a
+  stop button wired to it.
 - **Unlimited memory can take the host down.** With no `stack_limit`, a genome
   that pushes forever grows the stack until the allocator gives up, and that
-  kills the process rather than just the run. A step budget bounds it implicitly
-  (a step can only allocate so much), which is the cheapest way to stay safe.
+  kills the process rather than just the run. A step budget bounds it implicitly,
+  since a step can only allocate so much, and that's the cheapest way to stay
+  safe.
 
 ## How the interpreter works
 
@@ -442,17 +450,17 @@ both on fixed workloads; numbers from a Ryzen 7 5800X, GCC 16.1.1 `-O3`:
 | Brainfuck interpreter (mixed) | 0.47 ms | 2.5 ns |
 | 20k random genomes, 10k-step budget | 2.0 µs | 3.6 ns |
 
-That is 280–420 million instructions per second per core — around half a
-million budgeted genomes per second, 700,000 replications.
+That's 280–420 million instructions per second per core: around half a million
+budgeted genomes per second, or 700,000 replications.
 
-The optimisation work below was measured on the same machine under GCC 15,
-where it took the 24-step run from 0.30 µs to 0.09 µs, the counting loop from
-5.8 to 1.5 ns/step, fib from 5.6 to 1.9, Brainfuck from 6.2 to 1.9, and the
-20k-random-genome sweep from 4.1 to 1.7 µs/run — 2.4× to 3.9× across the board.
-The table above is the same code rebuilt with GCC 16.1.1, which gives back
-roughly a third of that; the ordering of what mattered has not changed, but
-**benchmark your own toolchain rather than trusting either column.** What got
-it there, in order of effect:
+The optimisation work below was measured on the same machine under GCC 15, where
+it took the 24-step run from 0.30 µs to 0.09 µs, the counting loop from 5.8 to
+1.5 ns/step, fib from 5.6 to 1.9, Brainfuck from 6.2 to 1.9, and the
+20k-random-genome sweep from 4.1 to 1.7 µs/run. Between 2.4× and 3.9× across the
+board. The table above is the same code rebuilt with GCC 16.1.1, which gives back
+roughly a third of that. The ordering of what mattered hasn't changed, but
+**benchmark your own toolchain rather than trusting either column.** What got it
+there, in order of effect:
 
 - **Decode once, not per step.** The control-map pass predecodes every gene
   into a byte array; the old loop paid a modulo *and* an out-of-line table
@@ -486,22 +494,22 @@ it there, in order of effect:
   recompiling *unrelated* code moved the interpreter's labels and swung the
   benchmarks ±25%; no change smaller than that could even be measured.
 
-Optimisations tried, measured and **rejected** — recorded because each looked
-like an obvious win:
+Optimisations tried, measured and **rejected**. They're recorded here because
+each of them looked like an obvious win:
 
-- *Raw-pointer stacks* (no size write-back per push): lost 15–50% — six more
+- *Raw-pointer stacks* (no size write-back per push): lost 15–50%. Six more
   pointers pinned live in a huge function beat the register allocator.
 - *Direct threading* (a plan of label addresses instead of opcode bytes, one
-  load fewer per dispatch): lost 5–15% — an 8×-larger plan plus a per-run
-  resolve pass beats one L1 hit that out-of-order execution was hiding anyway.
+  load fewer per dispatch): lost 5–15%. An 8×-larger plan plus a per-run resolve
+  pass beats one L1 hit that out-of-order execution was hiding anyway.
 - *Devirtualising I/O* by templating the interpreter over the io type: the
   inlined string-append machinery bloated the loop body and lost more on
   compute-heavy code than two virtual calls per printed character cost.
-- *Link-time optimisation*: lost 15–30% across the board — cross-module
+- *Link-time optimisation*: lost 15–30% across the board, because cross-module
   inlining re-lays-out the interpreter and undoes the alignment pinning.
   `-march=native` measured as pure noise on this integer workload.
 
-Benchmark before believing.
+Benchmark before believing any of it.
 
 To re-measure: `./build/shrewd_bench`. To compare dispatch strategies, build
 with `-DSHREWD_NO_COMPUTED_GOTO`. To tune for one machine, configure with
@@ -519,23 +527,22 @@ A genome can write genomes, including its own. It reads its own genes
 committed in `Result::offspring`; what the caller does with those genomes is the
 caller's business, not the VM's.
 
-There is no quine trick involved — `GREAD` reads the running genome directly,
-including the genes of the copy loop itself. `examples/replicator.savvy` is a
-complete self-replicator in four lines of Savvy, and `examples/mutator.savvy` is
-the same loop perturbing what it copies.
+No quine trick is involved. `GREAD` reads the running genome directly, including
+the genes of the copy loop itself. `examples/replicator.savvy` is a complete
+self-replicator in four lines of Savvy, and `examples/mutator.savvy` is the same
+loop perturbing what it copies.
 
-The design choice worth naming: **the copying loop lives in the genome, not in
-the VM.** So how faithfully a genome copies itself — and what it changes when it
-doesn't — is written in the program, where a program can change it. An external
-`mutate()` is a fixed policy applied from outside; this is not.
+The design choice worth naming is that **the copying loop lives in the genome,
+not in the VM.** How faithfully a genome copies itself, and what it changes when
+it doesn't, is written in the program, where a program can change it. An external
+`mutate()` is a fixed policy applied from outside. This isn't.
 
-`mutate()` and `crossover()` in `genome.hpp` remain, as tools for generating
-test genomes and measuring the language. They are scaffolding, not the
-mechanism.
+`mutate()` and `crossover()` in `genome.hpp` remain as tools for generating test
+genomes and measuring the language. They're scaffolding, not the mechanism.
 
 **`RAND` is seeded per run, not ambient.** `VM::run(genome, input, seed)` stays a
-pure function — the same triple always reproduces a run exactly — while the
-program still sees noise. Reproducibility matters too much to give up for a
+pure function, so the same triple always reproduces a run exactly, while the
+program still sees noise. Reproducibility matters too much to trade away for a
 source of randomness.
 
 ## Build and run
@@ -568,13 +575,13 @@ under `-fsanitize=address,undefined`.
 
 ## What running it actually taught us
 
-Findings from the demo — the reasons several of the design rules above are
-written the way they are.
+Findings from the demo. Several of the design rules above are written the way
+they are because of these.
 
 **Turing-complete does not mean robust to editing, and the gap was nearly
-fatal.** When `CALL` took an absolute address, the language could still compute
-anything — the Brainfuck interpreter proved it — while being unable to *survive*
-an edit anywhere near a subroutine. The measurement: insert a `NOP`, an
+fatal.** When `CALL` took an absolute address the language could still compute
+anything — the Brainfuck interpreter proved that — while being unable to
+*survive* an edit anywhere near a subroutine. The measurement: insert a `NOP`, an
 instruction that does nothing, at every position of a working genome and count
 how often the output is unchanged.
 
@@ -586,31 +593,32 @@ how often the output is unchanged.
 | hanoi (calls) | **28%** | **85%** |
 
 An insertion shifts every later gene, so every absolute target became wrong at
-once: a do-nothing edit was lethal three times out of four. Subroutines are how
-functionality gets *reused* rather than duplicated inline, so this quietly
-capped how complex a machine-written genome could ever get. Calling procedures
-by index made position irrelevant and cost nothing — the procedure table is
-built by the prescan, so a call is still O(1). `shrewd_demo` section 2d now
-measures this every run, because it is exactly the kind of regression that
-returns silently.
+once, and a do-nothing edit was lethal three times out of four. Subroutines are
+how functionality gets *reused* instead of duplicated inline, so this quietly
+capped how complex a machine-written genome could ever get. Calling procedures by
+index made position irrelevant and cost nothing, since the procedure table is
+built by the prescan and a call is still O(1). `shrewd_demo` section 2d now
+measures this every run, because it's exactly the kind of regression that comes
+back silently.
 
 The general lesson: **any mechanism that names a place by where it is will be
 destroyed by the edit operators.** Name things structurally.
 
 **Self-inspection made gene values observable, and quietly broke an
 equivalence.** A gene of 200 and a gene of 44 both decode to `RAND`, so the
-disassembler used to canonicalise one to the other for free. `GREAD` ended that:
-the genome is now data to itself, and `self[i]` returns the raw number. The
-round-trip test caught it. `to_assembly` is now bitwise-exact, writing
+disassembler used to canonicalise one to the other for free. `GREAD` ended that.
+The genome is now data to itself, and `self[i]` returns the raw number. The
+round-trip test caught it, and `to_assembly` is now bitwise-exact, writing
 non-canonical genes as numbers with the mnemonic demoted to a comment. Expect
-more of this — anything that rewrites a genome "equivalently" must now mean
+more of this: anything that rewrites a genome "equivalently" now has to mean
 *bitwise*.
 
-**Neutral edits are rare in a dense genome — exactly 72 of 8,028 (0.9%).**
-Fully explained: the seed has 24 opcode genes, and 224 = 4 × 56, so each has
-exactly 3 redundant encodings. 24 × 3 = 72. Where every gene does work, *modulo
-redundancy is the only source of neutrality*. Slack has to come from somewhere
-else — unreachable genes, duplicated regions — before an edit can be free.
+**Neutral edits are rare in a dense genome — exactly 72 of 8,028 (0.9%),** and
+the number is fully explained. The seed has 24 opcode genes, and 224 = 4 × 56, so
+each has exactly 3 redundant encodings. 24 × 3 = 72. Where every gene does work,
+*modulo redundancy is the only source of neutrality*. Slack has to come from
+somewhere else, like unreachable genes or duplicated regions, before an edit can
+be free.
 
 **A `default:` label in a switch cost a working replicator.** Adding `puts`
 produced a `-Wswitch` warning about an unhandled enum case; "fixing" it with
@@ -622,36 +630,35 @@ one. Switches over the opcode and builtin enums now list every case, the
 interpreter's dispatch table is generated from the single op list, and the
 compiler is left free to complain.
 
-**A search over genomes must charge for length.** With no length cost, the
-demo's hill-climb bloated to thousands of junk genes while executing 13
-instructions — an early jump skipped the junk, so it burned no CPU and the
-score never saw it.
+**A search over genomes must charge for length.** With no length cost the demo's
+hill-climb bloated to thousands of junk genes while executing 13 instructions. An
+early jump skipped the junk, so it burned no CPU and the score never saw it.
 
-**But a flat per-gene charge is fatal.** It collapsed the same search to a
-single gene. Growth is then strictly worse at *every* step, so nothing can ever
-afford the two or three neutral insertions needed to reach the next working
-instruction. What works is a free allowance with a steep charge beyond it —
-`shrewd_demo` section 10 uses 96 free genes, then 0.02 per gene. Expect that
-shape wherever a resource is charged.
+**But a flat per-gene charge is fatal.** It collapsed the same search to a single
+gene. Growth is then strictly worse at *every* step, so nothing can ever afford
+the two or three neutral insertions needed to reach the next working instruction.
+What works is a free allowance with a steep charge beyond it; `shrewd_demo`
+section 10 uses 96 free genes, then 0.02 per gene. Expect that shape wherever a
+resource is charged.
 
 **A score must match the edit operators.** Scoring output position-by-position
-made a single insertion catastrophic, even for a genome one gene from perfect.
-Since insertions and deletions are first-class, edit distance is the metric
-that fits. An earlier attempt also rewarded output *length*, which one `OUTNUM`
-gets for free — the search found that local optimum immediately and sat in it
-for 2,500 generations. Cheap proxies get gamed fast.
+made a single insertion catastrophic, even for a genome one gene away from
+perfect. Since insertions and deletions are first-class, edit distance is the
+metric that fits. An earlier attempt also rewarded output *length*, which one
+`OUTNUM` gets for free, and the search found that local optimum immediately and
+sat in it for 2,500 generations. Cheap proxies get gamed fast.
 
-**The gradient is real, and greedy climbing plateaus.** A `(1+λ)` hill-climb
-from a random genome halves the edit distance to `Hello, World` and then stalls
+**The gradient is real, and greedy climbing plateaus.** A `(1+λ)` hill-climb from
+a random genome halves the edit distance to `Hello, World` and then stalls
 (section 10 runs it every time). Small edits really do produce small changes in
-behaviour — which is the property the ISA ordering was designed for — but a
-greedy climber alone does not get all the way there.
+behaviour, which is the property the ISA ordering was designed for, but a greedy
+climber on its own doesn't get all the way there.
 
-**Self-editing genomes can break their own copy loop, and that is the point.**
-Of 200 seeds of `mutator.savvy`, 184 produced a modified child and 136 of those
+**Self-editing genomes can break their own copy loop, and that's the point.** Of
+200 seeds of `mutator.savvy`, 184 produced a modified child and 136 of those
 could still reproduce. When the copy loop is data like everything else, a genome
-can damage its own ability to copy itself — the direct consequence of putting
-the loop in the genome rather than the VM.
+can damage its own ability to copy itself. That's the direct consequence of
+putting the loop in the genome rather than the VM.
 
 ## Interfaces for embedding
 

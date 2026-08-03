@@ -1,10 +1,16 @@
 #include "net/http.hpp"
 
+#ifdef _WIN32
+#include <winsock2.h>
+
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#endif
 
 #include <cctype>
 #include <cerrno>
@@ -17,6 +23,91 @@ namespace {
 
 constexpr std::size_t kMaxHeaderBytes = 1u << 16;
 constexpr std::size_t kMaxBodyBytes = 1u << 22;
+
+#ifdef _WIN32
+
+struct WinsockInit {
+    WinsockInit() {
+        WSADATA d;
+        WSAStartup(MAKEWORD(2, 2), &d);
+    }
+    ~WinsockInit() { WSACleanup(); }
+};
+
+void ensure_winsock() { static WinsockInit once; }
+
+void close_socket(socket_t fd) { ::closesocket(static_cast<SOCKET>(fd)); }
+int last_error() { return WSAGetLastError(); }
+bool interrupted(int e) { return e == WSAEINTR || e == WSAECONNABORTED; }
+
+constexpr int kShutdownBoth = SD_BOTH;
+constexpr int kNoSignal = 0;
+
+using opt_ptr = const char *;
+using sock_len = int;
+using io_size = int;
+
+void set_timeouts(socket_t fd, int seconds) {
+    DWORD ms = static_cast<DWORD>(seconds) * 1000;
+    ::setsockopt(static_cast<SOCKET>(fd), SOL_SOCKET, SO_RCVTIMEO,
+                 reinterpret_cast<opt_ptr>(&ms), sizeof ms);
+    ::setsockopt(static_cast<SOCKET>(fd), SOL_SOCKET, SO_SNDTIMEO,
+                 reinterpret_cast<opt_ptr>(&ms), sizeof ms);
+}
+
+void allow_rebind(socket_t fd) {
+    int yes = 1;
+    ::setsockopt(static_cast<SOCKET>(fd), SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
+                 reinterpret_cast<opt_ptr>(&yes), sizeof yes);
+}
+
+#else
+
+void ensure_winsock() {}
+
+void close_socket(socket_t fd) { ::close(fd); }
+int last_error() { return errno; }
+bool interrupted(int e) { return e == EINTR || e == ECONNABORTED; }
+
+constexpr int kShutdownBoth = SHUT_RDWR;
+#ifdef MSG_NOSIGNAL
+constexpr int kNoSignal = MSG_NOSIGNAL;
+#else
+constexpr int kNoSignal = 0;
+#endif
+
+using opt_ptr = const void *;
+using sock_len = socklen_t;
+using io_size = ssize_t;
+
+void set_timeouts(socket_t fd, int seconds) {
+    timeval tv{seconds, 0};
+    ::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
+    ::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
+}
+
+void allow_rebind(socket_t fd) {
+    int yes = 1;
+    ::setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+}
+
+#endif
+
+io_size sock_send(socket_t fd, const char *p, std::size_t n) {
+#ifdef _WIN32
+    return ::send(static_cast<SOCKET>(fd), p, static_cast<int>(n), kNoSignal);
+#else
+    return ::send(fd, p, n, kNoSignal);
+#endif
+}
+
+io_size sock_recv(socket_t fd, char *p, std::size_t n) {
+#ifdef _WIN32
+    return ::recv(static_cast<SOCKET>(fd), p, static_cast<int>(n), 0);
+#else
+    return ::recv(fd, p, n, 0);
+#endif
+}
 
 std::string url_decode(const std::string &s) {
     std::string out;
@@ -76,12 +167,12 @@ const char *status_text(int code) {
     }
 }
 
-bool send_all(int fd, const char *data, std::size_t n) {
+bool send_all(socket_t fd, const char *data, std::size_t n) {
     std::size_t sent = 0;
     while (sent < n) {
-        ssize_t w = ::send(fd, data + sent, n - sent, MSG_NOSIGNAL);
+        io_size w = sock_send(fd, data + sent, n - sent);
         if (w <= 0) {
-            if (w < 0 && errno == EINTR)
+            if (w < 0 && interrupted(last_error()))
                 continue;
             return false;
         }
@@ -104,7 +195,8 @@ std::string lower(std::string s) {
     return s;
 }
 
-void write_response(int fd, const Response &resp, const std::string &origin) {
+void write_response(socket_t fd, const Response &resp,
+                    const std::string &origin) {
     std::string head = "HTTP/1.1 ";
     head += std::to_string(resp.status);
     head += ' ';
@@ -190,12 +282,13 @@ Server::Server(Options opts, Handler handler)
 Server::~Server() { stop(); }
 
 bool Server::start() {
-    listen_fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-    if (listen_fd_ < 0)
+    ensure_winsock();
+
+    listen_fd_ = static_cast<socket_t>(::socket(AF_INET, SOCK_STREAM, 0));
+    if (listen_fd_ == kNoSocket)
         return false;
 
-    int yes = 1;
-    ::setsockopt(listen_fd_, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof yes);
+    allow_rebind(listen_fd_);
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;
@@ -203,15 +296,15 @@ bool Server::start() {
     addr.sin_addr.s_addr =
         htonl(opts_.loopback_only ? INADDR_LOOPBACK : INADDR_ANY);
 
-    if (::bind(listen_fd_, reinterpret_cast<sockaddr *>(&addr), sizeof addr) <
+    if (::bind(listen_fd_, reinterpret_cast<sockaddr *>(&addr), sizeof addr) !=
         0) {
-        ::close(listen_fd_);
-        listen_fd_ = -1;
+        close_socket(listen_fd_);
+        listen_fd_ = kNoSocket;
         return false;
     }
-    if (::listen(listen_fd_, opts_.backlog) < 0) {
-        ::close(listen_fd_);
-        listen_fd_ = -1;
+    if (::listen(listen_fd_, opts_.backlog) != 0) {
+        close_socket(listen_fd_);
+        listen_fd_ = kNoSocket;
         return false;
     }
 
@@ -226,9 +319,9 @@ bool Server::start() {
 void Server::stop() {
     if (!running_.exchange(false))
         return;
-    if (listen_fd_ >= 0) {
-        ::shutdown(listen_fd_, SHUT_RDWR);
-        ::close(listen_fd_);
+    if (listen_fd_ != kNoSocket) {
+        ::shutdown(listen_fd_, kShutdownBoth);
+        close_socket(listen_fd_);
     }
     {
         std::lock_guard<std::mutex> lk(mtx_);
@@ -242,21 +335,21 @@ void Server::stop() {
     workers_.clear();
     std::lock_guard<std::mutex> lk(mtx_);
     for (auto &[fd, peer] : queue_)
-        ::close(fd);
+        close_socket(fd);
     queue_.clear();
-    listen_fd_ = -1;
+    listen_fd_ = kNoSocket;
 }
 
 void Server::accept_loop() {
     while (running_.load()) {
         sockaddr_in peer{};
-        socklen_t plen = sizeof peer;
-        int fd =
-            ::accept(listen_fd_, reinterpret_cast<sockaddr *>(&peer), &plen);
-        if (fd < 0) {
+        sock_len plen = sizeof peer;
+        socket_t fd = static_cast<socket_t>(
+            ::accept(listen_fd_, reinterpret_cast<sockaddr *>(&peer), &plen));
+        if (fd == kNoSocket) {
             if (!running_.load())
                 break;
-            if (errno == EINTR || errno == ECONNABORTED)
+            if (interrupted(last_error()))
                 continue;
             break;
         }
@@ -264,11 +357,10 @@ void Server::accept_loop() {
         char ipbuf[INET_ADDRSTRLEN] = {0};
         ::inet_ntop(AF_INET, &peer.sin_addr, ipbuf, sizeof ipbuf);
 
-        timeval tv{5, 0};
-        ::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof tv);
-        ::setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, sizeof tv);
+        set_timeouts(fd, 5);
         int one = 1;
-        ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &one, sizeof one);
+        ::setsockopt(fd, IPPROTO_TCP, TCP_NODELAY,
+                     reinterpret_cast<opt_ptr>(&one), sizeof one);
 
         bool overloaded = false;
         {
@@ -284,7 +376,7 @@ void Server::accept_loop() {
             busy.status = 503;
             busy.body = "server busy";
             write_response(fd, busy, opts_.allow_origin);
-            ::close(fd);
+            close_socket(fd);
             continue;
         }
         cv_.notify_one();
@@ -293,7 +385,7 @@ void Server::accept_loop() {
 
 void Server::worker_loop() {
     for (;;) {
-        int fd = -1;
+        socket_t fd = kNoSocket;
         std::string peer;
         {
             std::unique_lock<std::mutex> lk(mtx_);
@@ -308,17 +400,17 @@ void Server::worker_loop() {
             queue_.pop_front();
         }
         serve(fd, peer);
-        ::close(fd);
+        close_socket(fd);
     }
 }
 
-void Server::serve(int fd, const std::string &peer) {
+void Server::serve(socket_t fd, const std::string &peer) {
     std::string buf;
     char chunk[4096];
     std::size_t hdr_end;
     while ((hdr_end = buf.find("\r\n\r\n")) == std::string::npos &&
            buf.size() < kMaxHeaderBytes) {
-        ssize_t r = ::recv(fd, chunk, sizeof chunk, 0);
+        io_size r = sock_recv(fd, chunk, sizeof chunk);
         if (r <= 0)
             return;
         buf.append(chunk, static_cast<std::size_t>(r));
@@ -393,7 +485,7 @@ void Server::serve(int fd, const std::string &peer) {
         }
         std::string body = buf.substr(hdr_end + 4);
         while (body.size() < len) {
-            ssize_t r = ::recv(fd, chunk, sizeof chunk, 0);
+            io_size r = sock_recv(fd, chunk, sizeof chunk);
             if (r <= 0)
                 break;
             body.append(chunk, static_cast<std::size_t>(r));

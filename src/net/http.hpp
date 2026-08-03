@@ -3,6 +3,7 @@
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <functional>
 #include <mutex>
@@ -12,6 +13,14 @@
 #include <vector>
 
 namespace http {
+
+#ifdef _WIN32
+using socket_t = std::uintptr_t;
+inline constexpr socket_t kNoSocket = static_cast<socket_t>(-1);
+#else
+using socket_t = int;
+inline constexpr socket_t kNoSocket = -1;
+#endif
 
 struct Request {
     std::string method;
@@ -64,18 +73,18 @@ class Server {
   private:
     void accept_loop();
     void worker_loop();
-    void serve(int fd, const std::string &peer);
+    void serve(socket_t fd, const std::string &peer);
 
     Options opts_;
     Handler handler_;
-    int listen_fd_ = -1;
+    socket_t listen_fd_ = kNoSocket;
     std::atomic<bool> running_{false};
     std::thread acceptor_;
     std::vector<std::thread> workers_;
 
     std::mutex mtx_;
     std::condition_variable cv_;
-    std::deque<std::pair<int, std::string>> queue_;
+    std::deque<std::pair<socket_t, std::string>> queue_;
 };
 
 } // namespace http

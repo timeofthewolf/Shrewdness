@@ -107,10 +107,10 @@
     setTimeout(() => (toast = ""), 2600);
   }
 
-  function editExec(cmd) { try { document.execCommand(cmd); } catch { /* */ } }
+  function editExec(cmd) { try { document.execCommand(cmd); } catch {} }
   async function editPaste() {
     let text = ""; try { text = await navigator.clipboard.readText(); } catch { return; }
-    try { document.execCommand("insertText", false, text); } catch { /* */ }
+    try { document.execCommand("insertText", false, text); } catch {}
   }
   function openEditorMenu(e) {
     if (!activeName) return;

@@ -2,20 +2,23 @@
 
 Two languages and an IDE for them.
 
-**Shrewd** is a Turing-complete language whose programs are flat lists of
-integers. Any list of integers is a valid program: there is no parse step, no
-invalid opcode and no faulting instruction, so editing a program at random
-produces different behaviour rather than a syntax error. It is built, tested
-and fast. → [`src/shrewd/README.md`](src/shrewd/README.md)
+![The Shrewdness IDE: Savvy on the left, the assembly it compiles to and a live
+console on the right](docs/ide.png)
 
-**Savvy** is the language you actually write. Small, C-like, one type, and it
-compiles to Shrewd exactly. It also decompiles *back*: hand `shrewdc savvy` any
-list of integers at all and it returns Savvy that compiles and runs.
+**Shrewd** is a Turing-complete language whose programs are flat lists of
+integers. Any list of integers is a valid program. There's no parse step, no
+invalid opcode, nothing that can fault, so editing a program at random gives you
+different behaviour instead of a syntax error.
+→ [`src/shrewd/README.md`](src/shrewd/README.md)
+
+**Savvy** is the language you actually write: small, C-like, one type, and it
+compiles to Shrewd exactly. It also goes the other way. Hand `shrewdc savvy` any
+list of integers at all and you get Savvy back that compiles and runs.
 → [`src/savvy/README.md`](src/savvy/README.md)
 
-**Shrewdness** is the IDE — a browser front end over a small C++ backend, where
-you edit Savvy, watch it become assembly and genes as you type, run it against
-a live terminal, and step through it instruction by instruction.
+**Shrewdness** is the IDE. A browser front end over a small C++ backend, where
+you edit Savvy, watch it turn into assembly and genes as you type, run it
+against a live terminal, and step through it one instruction at a time.
 → [`web/README.md`](web/README.md)
 
 ```
@@ -43,12 +46,16 @@ echo "(12+34)*2" | ./build/shrewdc run examples/calculator.savvy    # => 92
 ./build/shrewdness             # the IDE on http://127.0.0.1:7070/
 ```
 
-The IDE's front end is a Svelte app; build it once (`cd web && npm install &&
-npm run build`) and `shrewdness` serves it. Or skip all of the above:
+The IDE's front end is a Svelte app. Build it once (`cd web && npm install &&
+npm run build`) and `shrewdness` will serve it. Or skip all of the above:
 
 ```sh
 docker compose up --build      # then open http://localhost:7070/
 ```
+
+Prebuilt binaries for Linux, macOS and Windows are on the
+[releases page](https://github.com/timeofthewolf/Shrewdness/releases); see
+[RELEASING.md](RELEASING.md) for what's in each archive and how they're made.
 
 ## The `shrewdc` toolchain
 
@@ -66,13 +73,13 @@ run options:
   --offspring DIR   write each committed child to DIR/childN.shrewd
 ```
 
-`run` wires `input()`/`putchar()` to the real terminal, so interactive programs
-(`examples/repl.savvy`) prompt and wait like any other program. A program that
-loops forever runs forever — that is a feature; kill it like any other process,
-or hand it a `--steps` budget.
+`run` wires `input()` and `putchar()` to the real terminal, so interactive
+programs like `examples/repl.savvy` prompt and wait the way anything else does.
+A program that loops forever will loop forever; that's the point. Kill it like
+any other process, or hand it a `--steps` budget.
 
-A program can also write genomes: `EMIT`/`SPAWN` build a child gene by gene, and
-`--offspring` writes each one out. Children are genomes, so they run like
+Programs can also write genomes. `EMIT` and `SPAWN` build a child gene by gene,
+and `--offspring` writes each one out. Children are genomes, so they run like
 anything else:
 
 ```sh
@@ -81,8 +88,8 @@ shrewdc run gen1/child0.shrewd     --seed 2 --offspring gen2
 diff gen1/child0.shrewd gen2/child0.shrewd   # what one generation changed
 ```
 
-Programs can span files: `include "lib";` splices `lib.savvy` (resolved
-relative to the including file) into the build, once — see the
+Programs can span files: `include "lib";` splices `lib.savvy` (resolved relative
+to the including file) into the build, once. See the
 [Savvy README](src/savvy/README.md#programs-can-span-files).
 
 ## The Shrewdness IDE
@@ -92,18 +99,22 @@ relative to the including file) into the build, once — see the
 ./build/shrewdness --net --port 8080     # listen on all interfaces
 ```
 
-An editor with the toolchain wired into the panes beside it: type Savvy on the
-left and the assembly, the gene list and the decompiled form on the right stay
-current as you type. Multi-file projects, split panes, a command palette, vim
-and emacs keymaps, an interactive terminal that talks to `input()`, and a
-step debugger that replays a run with the stack, registers and memory writes at
-each step. It rearranges itself down to a phone rather than dropping features.
-Full tour in [`web/README.md`](web/README.md).
+An editor with the toolchain wired into the panes beside it. Type Savvy on the
+left; the assembly, the gene list and the decompiled form on the right keep up
+as you go.
 
-The backend holds no database and no accounts — projects live in your browser's
-local storage, and the server just compiles, runs and traces what it is sent.
-To put it on a public domain, see
-[Hosting it](web/README.md#hosting-it).
+![Typing a Savvy program while the assembly pane recompiles alongside
+it](docs/live.gif)
+
+You also get multi-file projects, split panes, a command palette, vim and emacs
+keymaps, a terminal that really talks to `input()`, and a step debugger that
+replays a run with the stack, registers and memory writes at every step. It
+rearranges itself down to a phone rather than dropping features. Full tour in
+[`web/README.md`](web/README.md).
+
+The backend holds no database and no accounts. Projects live in your browser's
+local storage, and the server just compiles, runs and traces what it's sent. To
+put it on a public domain, see [Hosting it](web/README.md#hosting-it).
 
 ## Layout
 
@@ -116,26 +127,25 @@ To put it on a public domain, see
 | `web/` | the IDE front end: a Svelte app served by `shrewdness` |
 | `examples/` | Savvy programs, each demonstrating one thing → [`examples/README.md`](examples/README.md) |
 
-Two libraries — `shrewd`, then `savvy` on top of it, never the other way — plus
-`net`, which knows about neither. The interpreter has no idea Savvy or the IDE
-exists.
+Two libraries, `shrewd` and then `savvy` on top of it, never the other way
+round, plus `net`, which knows about neither. The interpreter has no idea that
+Savvy or the IDE exist.
 
 ## Design rules the whole project obeys
 
 - **Any genome runs.** No parse step, no invalid opcode, no faulting
-  instruction. Editing a genome produces a different program, never a broken
+  instruction. Edit a genome and you get a different program, never a broken
   one.
-- **The language sets no limits.** `while (1 == 1)` runs forever; recursion
-  goes as deep as the host allows. Budgets (`shrewd::Limits`) are imposed by
-  the *caller* — the test suite, the IDE, or your own embedding. Policy lives
-  with whoever pays for the resources.
+- **The language sets no limits.** `while (1 == 1)` runs forever; recursion goes
+  as deep as the host allows. Budgets (`shrewd::Limits`) are imposed by the
+  *caller*: the test suite, the IDE, or your own embedding. Policy belongs with
+  whoever pays for the resources.
 - **Nothing names a position.** Blocks are matched, procedures are called by
   index. Anything holding an absolute address is destroyed by the first
-  insertion — measured, not assumed (see the Shrewd README).
+  insertion, which is measured rather than assumed (see the Shrewd README).
 - **Runs are reproducible.** A run is a pure function of
-  `(genome, input, seed)`. A result you cannot reproduce is a result you cannot
-  trust.
-- **Text forms round-trip.** `shrewdc asm` is bitwise-exact; `shrewdc savvy`
+  `(genome, input, seed)`. If you can't reproduce a result you can't trust it.
+- **Text forms round-trip.** `shrewdc asm` is bitwise-exact. `shrewdc savvy`
   always produces something that compiles and runs, and for compiler-shaped
   genomes something that behaves identically.
 
@@ -151,26 +161,27 @@ Measured by `shrewd_bench` on a Ryzen 7 5800X, GCC 16.1.1 `-O3` (July 2026):
 | Brainfuck interpreter in Savvy | 2.5 ns | ~400 Mstep/s |
 | 20k random genomes, 10k-step budget | 3.6 ns | 2.0 µs per genome |
 
-A whole short run — control-map build, execution, result — costs ~0.14 µs, so
-a single core evaluates **around half a million budgeted genomes per second**,
-and through the buffer-recycling `run_into` API a steady-state
-evaluation loop performs zero heap allocations. Runs are independent pure
-functions, so N cores give N× by giving each thread its own `VM`. How it gets
-there is documented in the [Shrewd README](src/shrewd/README.md#speed).
+A whole short run (control-map build, execution, result) costs about 0.14 µs, so
+one core gets through **roughly half a million budgeted genomes per second**.
+Through the buffer-recycling `run_into` API a steady-state evaluation loop
+performs zero heap allocations. Runs are independent pure functions, so N cores
+give you N× by giving each thread its own `VM`. How it gets there is documented
+in the [Shrewd README](src/shrewd/README.md#speed).
 
 ## Status
 
-The language, the compiler, the decompiler, the toolchain and the IDE are
+The language, the compiler, the decompiler, the toolchain and the IDE are all
 built and working.
 
 `shrewd_demo` runs over 700,000 genomes per invocation: every example compiled
 and checked against its expected output, the entire one-mutation neighbourhood
 of a seed program, 200,000 random genomes, 100,000 mutants across 2,000
 lineages, constant folding verified against the VM's own arithmetic, and
-determinism checks — clean under `-fsanitize=address,undefined`.
+determinism checks. It's clean under `-fsanitize=address,undefined`.
 
-Beyond the suite the toolchain has been fuzzed: every VM optimisation round is
+Past the suite, the toolchain has been fuzzed. Every VM optimisation round is
 proven observably invisible by hashing full results over 200,000 random genomes
-under randomized budgets (both dispatch strategies, before vs after), 110,000
-generated Savvy programs survive compile → decompile → recompile with behaviour
-intact, and the parser eats arbitrary garbage under ASan/UBSan without fault.
+under randomized budgets (both dispatch strategies, before and after), 110,000
+generated Savvy programs survive compile → decompile → recompile with their
+behaviour intact, and the parser eats arbitrary garbage under ASan and UBSan
+without faulting.

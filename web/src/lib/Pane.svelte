@@ -10,7 +10,7 @@
 
   function onTabDragStart(e, key) {
     L.drag = { key };
-    try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("application/x-shrewd-tab", key); } catch { /* */ }
+    try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("application/x-shrewd-tab", key); } catch {}
   }
   const onTabDragEnd = () => { L.drag = null; dropZone = null; };
 

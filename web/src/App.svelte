@@ -58,12 +58,12 @@
   }
 
   function exec(command) {
-    try { document.execCommand(command); } catch { /* nothing selected */ }
+    try { document.execCommand(command); } catch {}
   }
   function selectAll() {
     const el = ctxTarget;
     if (isField(el)) el.select?.();
-    else { el?.focus?.(); try { document.execCommand("selectAll"); } catch { /* ignore */ } }
+    else { el?.focus?.(); try { document.execCommand("selectAll"); } catch {} }
   }
   async function paste() {
     let text = "";
@@ -78,7 +78,7 @@
       el.focus();
     } else {
       el?.focus?.();
-      try { document.execCommand("insertText", false, text); } catch { /* ignore */ }
+      try { document.execCommand("insertText", false, text); } catch {}
     }
   }
 </script>
