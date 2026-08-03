@@ -2,6 +2,20 @@ import { project, closeTab } from "./project.svelte.js";
 import { isNarrow } from "./media.svelte.js";
 
 const KEY = "shrewdness-ide-dock";
+const DETACHED = "shrewdness-detached";
+
+const detachParam = (() => {
+  try { return new URLSearchParams(location.search).get("detach"); } catch { return null; }
+})();
+
+export const detached = (() => {
+  try {
+    if (detachParam !== null) { sessionStorage.setItem(DETACHED, "1"); return true; }
+    return sessionStorage.getItem(DETACHED) === "1";
+  } catch { return false; }
+})();
+
+const store = detached ? sessionStorage : localStorage;
 let nid = 1;
 const leaf = (keys = [], active = null) => ({
   id: nid++, type: "leaf", keys: [...keys], active: active ?? keys[0] ?? null,
@@ -20,7 +34,7 @@ function reid(node) {
 }
 function restore() {
   try {
-    const s = JSON.parse(localStorage.getItem(KEY));
+    const s = JSON.parse(store.getItem(KEY));
     if (s && s.root) return reid(s.root);
   } catch {}
   return null;
@@ -30,7 +44,17 @@ function fresh() {
   return leaf(files, project.active ? fileKey(project.active) : files[0] ?? null);
 }
 
-const initial = restore() || fresh();
+if (detachParam && isFile(detachParam)) {
+  const only = fileName(detachParam);
+  if (project.files.some((f) => f.name === only)) {
+    project.open = [only];
+    project.active = only;
+  }
+}
+
+const saved = restore();
+const initial =
+  saved || (detachParam ? leaf([detachParam], detachParam) : fresh());
 export const L = $state({
   root: initial,
   focused: firstLeaf(initial).id,
@@ -40,7 +64,7 @@ export const L = $state({
 
 export function save() {
   try {
-    localStorage.setItem(KEY, JSON.stringify({ root: strip(L.root) }));
+    store.setItem(KEY, JSON.stringify({ root: strip(L.root) }));
   } catch {}
 }
 function strip(n) {
@@ -174,6 +198,19 @@ export function mergeAll() {
   L.focused = L.root.id;
   if (isFile(L.root.active)) { L.activeFile = fileName(L.root.active); project.active = L.activeFile; }
   save();
+}
+
+export function detachKey(key) {
+  const lf = leafOf(key);
+  if (!lf) return;
+  removeFromLeaf(lf, key);
+  if (isFile(key)) closeTab(fileName(key));
+  collapseIfEmpty(lf);
+  save();
+}
+
+export function keyCount() {
+  return allLeaves().reduce((n, lf) => n + lf.keys.length, 0);
 }
 
 export function splitActive(dir = "right") {

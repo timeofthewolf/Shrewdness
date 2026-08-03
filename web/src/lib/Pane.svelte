@@ -1,7 +1,8 @@
 <script>
   import Pane from "./Pane.svelte";
   import Icon from "./Icon.svelte";
-  import { L, moveKey, activate, closeKey, setRatio } from "./layout.svelte.js";
+  import { L, moveKey, activate, closeKey, setRatio, detachKey, keyCount } from "./layout.svelte.js";
+  import { isDesktop, detachTab } from "./desktop.js";
   import { ui } from "./media.svelte.js";
 
   let { node, tab, body } = $props();
@@ -12,7 +13,14 @@
     L.drag = { key };
     try { e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("application/x-shrewd-tab", key); } catch {}
   }
-  const onTabDragEnd = () => { L.drag = null; dropZone = null; };
+  function onTabDragEnd(e, key) {
+    const outside = e.dataTransfer?.dropEffect === "none";
+    if (outside && isDesktop && keyCount() > 1) {
+      if (detachTab(key, e.screenX, e.screenY)) detachKey(key);
+    }
+    L.drag = null;
+    dropZone = null;
+  }
 
   function zoneAt(e) {
     const r = e.currentTarget.getBoundingClientRect();
@@ -88,7 +96,7 @@
           draggable={!ui.touch}
           aria-selected={node.active === key}
           ondragstart={(e) => onTabDragStart(e, key)}
-          ondragend={onTabDragEnd}
+          ondragend={(e) => onTabDragEnd(e, key)}
           onclick={() => activate(node.id, key)}
           onkeydown={(e) => e.key === "Enter" && activate(node.id, key)}
           onauxclick={(e) => e.button === 1 && closeKey(key)}

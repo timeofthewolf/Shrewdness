@@ -1,4 +1,4 @@
-build*/
+/build*/
 
 .cache/
 .vscode/
@@ -22,3 +22,4 @@ desktop/node_modules/
 desktop/dist/
 desktop/resources/bin/*
 !desktop/resources/bin/.gitkeep
+!desktop/build/

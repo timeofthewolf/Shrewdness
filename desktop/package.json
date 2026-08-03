@@ -23,7 +23,8 @@
     "productName": "Shrewdness",
     "files": [
       "main.js",
-      "menu.js"
+      "menu.js",
+      "preload.js"
     ],
     "extraResources": [
       {

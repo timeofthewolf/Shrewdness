@@ -129,12 +129,42 @@ function snapshotCurrent() {
   };
 }
 
+let lastWrite = "";
+
 function persist() {
   const i = ws.projects.findIndex((p) => p.id === project.id);
   if (i >= 0) ws.projects[i] = snapshotCurrent();
   else ws.projects.push(snapshotCurrent());
   ws.current = project.id;
-  localStorage.setItem(KEY, JSON.stringify({ current: ws.current, projects: ws.projects }));
+  lastWrite = JSON.stringify({ current: ws.current, projects: ws.projects });
+  localStorage.setItem(KEY, lastWrite);
+}
+
+function adoptRemote(remote) {
+  project.name = remote.name;
+  project.files = structuredClone(remote.files);
+  project.folders = [...remote.folders];
+  project.entry = remote.entry;
+  const names = new Set(remote.files.map((f) => f.name));
+  project.open = project.open.filter((n) => names.has(n));
+  if (!project.open.length) project.open = [remote.entry];
+  if (!names.has(project.active)) project.active = project.open[0];
+}
+
+if (typeof addEventListener === "function") {
+  addEventListener("storage", (e) => {
+    if (e.key !== KEY || e.newValue == null || e.newValue === lastWrite) return;
+    let w;
+    try { w = JSON.parse(e.newValue); } catch { return; }
+    if (!w || !Array.isArray(w.projects)) return;
+    const projects = w.projects.map((p) => normalizeProject(p)).filter(Boolean);
+    if (!projects.length) return;
+    ws.projects = projects;
+    const mine = projects.find((p) => p.id === project.id);
+    if (mine) adoptRemote(mine);
+    workspace.list = projects.map((p) => ({ id: p.id, name: p.name }));
+    workspace.rev++;
+  });
 }
 
 export function save() {

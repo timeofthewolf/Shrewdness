@@ -62,6 +62,10 @@ Prebuilt binaries for Linux, macOS and Windows are on the
 free port, waits for it, and puts the workbench in a native window. The backend
 is a child process, so it goes away when you close the app.
 
+Drag a tab out of the window and it becomes a window of its own. The two share
+one project — edit a file in either and the other picks it up — but each keeps
+its own pane layout, so a detached window is a view, not a copy.
+
 ```sh
 cmake --build build -j                       # the backend it launches
 cd web && npm run build && cd ..             # the front end it serves

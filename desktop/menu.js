@@ -11,7 +11,7 @@ module.exports = function buildMenu(win, url) {
         {
           label: "Reload the workbench",
           accelerator: "CmdOrCtrl+R",
-          click: () => win.loadURL(url),
+          click: () => win.webContents.reload(),
         },
         { type: "separator" },
         mac ? { role: "close" } : { role: "quit" },

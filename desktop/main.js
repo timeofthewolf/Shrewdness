@@ -1,4 +1,4 @@
-const { app, BrowserWindow, dialog, shell } = require("electron");
+const { app, BrowserWindow, dialog, ipcMain, shell } = require("electron");
 const { spawn } = require("node:child_process");
 const { createServer } = require("node:net");
 const path = require("node:path");
@@ -47,6 +47,8 @@ async function waitForBackend(url, deadlineMs = 15000) {
   return false;
 }
 
+const iconPath = path.join(__dirname, "build", "icon.png");
+let serverUrl = null;
 let backend = null;
 let stopping = false;
 
@@ -107,14 +109,23 @@ async function start() {
     return;
   }
 
+  serverUrl = url;
+  createWindow();
+}
+
+function createWindow(opts = {}) {
   const win = new BrowserWindow({
     width: 1440,
     height: 900,
     minWidth: 380,
     minHeight: 480,
+    x: opts.x,
+    y: opts.y,
     backgroundColor: "#101312",
     show: false,
+    ...(fs.existsSync(iconPath) ? { icon: iconPath } : {}),
     webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: true,
@@ -122,11 +133,11 @@ async function start() {
   });
 
   win.once("ready-to-show", () => win.show());
-  buildMenu(win, url);
+  buildMenu(win, serverUrl);
 
   const isLocal = (target) => {
     try {
-      return new URL(target).origin === url;
+      return new URL(target).origin === serverUrl;
     } catch {
       return false;
     }
@@ -141,8 +152,21 @@ async function start() {
     return { action: "deny" };
   });
 
-  win.loadURL(url);
+  win.loadURL(
+    opts.detach
+      ? `${serverUrl}?detach=${encodeURIComponent(opts.detach)}`
+      : serverUrl,
+  );
+  return win;
 }
+
+ipcMain.handle("shrewdness:detach", (_e, { key, x, y } = {}) => {
+  if (!serverUrl || typeof key !== "string") return false;
+  const px = Number.isFinite(x) ? Math.round(x) - 120 : undefined;
+  const py = Number.isFinite(y) ? Math.round(y) - 40 : undefined;
+  createWindow({ detach: key, x: px, y: py });
+  return true;
+});
 
 if (!app.requestSingleInstanceLock()) {
   app.quit();
