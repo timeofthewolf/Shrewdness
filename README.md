@@ -68,11 +68,11 @@ cd web && npm run build && cd ..             # the front end it serves
 cd desktop && npm install && npm start
 ```
 
-`npm run dist` packages it. That produces an AppImage and a tarball on Linux,
-an NSIS installer and a zip on Windows, a dmg and a zip on macOS — each with the
-`shrewdness` binary, `web/` and `examples/` bundled in. Put the binary for the
-platform you are packaging in `desktop/resources/bin/` first; the packager takes
-it from there rather than building it.
+`npm run dist` packages it: an AppImage on Linux, an installer and a portable
+zip on Windows, a dmg on macOS, each with the `shrewdness` binary, `web/` and
+`examples/` bundled in. Put the binary for the platform you are packaging in
+`desktop/resources/bin/` first; the packager takes it from there rather than
+building it. Tagged releases carry all of them alongside the plain archives.
 
 ## The `shrewdc` toolchain
 

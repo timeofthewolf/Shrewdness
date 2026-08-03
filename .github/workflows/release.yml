@@ -43,15 +43,19 @@ jobs:
           - os: ubuntu-22.04
             target: linux-x86_64
             extra: '-DCMAKE_EXE_LINKER_FLAGS="-static -s"'
+            electron: --linux --x64
           - os: ubuntu-22.04-arm
             target: linux-aarch64
             extra: '-DCMAKE_EXE_LINKER_FLAGS="-static -s"'
+            electron: --linux --arm64
           - os: macos-14
             target: macos-universal
             extra: '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0'
+            electron: --mac --universal
           - os: windows-latest
             target: windows-x86_64
             extra: ""
+            electron: --win --x64
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
@@ -130,6 +134,41 @@ jobs:
             *.tar.gz
             *.zip
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: desktop/package-lock.json
+
+      - name: Desktop app
+        shell: bash
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+        run: |
+          set -euo pipefail
+          mkdir -p desktop/resources/bin
+          for p in build/shrewdness build/Release/shrewdness.exe; do
+            if [ -f "$p" ]; then cp "$p" desktop/resources/bin/; fi
+          done
+          semver=$(echo "$VERSION" | sed 's/^v\.*//')
+          cd desktop
+          npm ci
+          npm version "$semver" --no-git-tag-version --allow-same-version >/dev/null
+          npx electron-builder ${{ matrix.electron }} --publish never
+          rm -rf dist/*-unpacked dist/mac* dist/linux* dist/win-* dist/.icon-* 2>/dev/null || true
+          ls -la dist
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: app-${{ matrix.target }}
+          path: |
+            desktop/dist/*.AppImage
+            desktop/dist/*.tar.gz
+            desktop/dist/*.exe
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+          if-no-files-found: error
+
   publish:
     needs: build
     runs-on: ubuntu-latest
@@ -137,6 +176,12 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           pattern: pkg-*
+          path: dist
+          merge-multiple: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: app-*
           path: dist
           merge-multiple: true
 

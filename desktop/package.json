@@ -21,14 +21,46 @@
   "build": {
     "appId": "io.shrewdness.ide",
     "productName": "Shrewdness",
-    "files": ["main.js", "menu.js"],
-    "extraResources": [
-      { "from": "../web/dist", "to": "web" },
-      { "from": "../examples", "to": "examples" },
-      { "from": "resources/bin", "to": "bin" }
+    "files": [
+      "main.js",
+      "menu.js"
     ],
-    "linux": { "target": ["AppImage", "tar.gz"], "category": "Development" },
-    "win": { "target": ["nsis", "zip"] },
-    "mac": { "target": ["dmg", "zip"], "category": "public.app-category.developer-tools" }
+    "extraResources": [
+      {
+        "from": "../web/dist",
+        "to": "web"
+      },
+      {
+        "from": "../examples",
+        "to": "examples"
+      },
+      {
+        "from": "resources/bin",
+        "to": "bin"
+      }
+    ],
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "category": "Development"
+    },
+    "win": {
+      "target": [
+        "nsis",
+        "zip"
+      ]
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "artifactName": "Shrewdness-${version}-${os}-${arch}.${ext}",
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
   }
 }
