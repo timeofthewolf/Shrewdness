@@ -135,7 +135,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          gh release create "$VERSION" dist/* \
-            --title "$VERSION" \
-            --generate-notes \
-            --verify-tag
+          if gh release view "$VERSION" >/dev/null 2>&1; then
+            gh release upload "$VERSION" dist/* --clobber
+          else
+            gh release create "$VERSION" dist/* \
+              --title "$VERSION" \
+              --generate-notes \
+              --verify-tag
+          fi
