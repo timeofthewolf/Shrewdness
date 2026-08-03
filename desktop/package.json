@@ -57,14 +57,12 @@
       "target": [
         "dmg"
       ],
-      "category": "public.app-category.developer-tools",
-      "identity": null
+      "category": "public.app-category.developer-tools"
     },
     "artifactName": "Shrewdness-${version}-${os}-${arch}.${ext}",
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
-    },
-    "afterPack": "afterPack.js"
+    }
   }
 }
