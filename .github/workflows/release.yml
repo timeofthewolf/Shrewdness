@@ -42,10 +42,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             target: linux-x86_64
-            extra: '-DCMAKE_EXE_LINKER_FLAGS=-static'
+            extra: '-DCMAKE_EXE_LINKER_FLAGS=-static -s'
           - os: ubuntu-22.04-arm
             target: linux-aarch64
-            extra: '-DCMAKE_EXE_LINKER_FLAGS=-static'
+            extra: '-DCMAKE_EXE_LINKER_FLAGS=-static -s'
           - os: macos-14
             target: macos-universal
             extra: '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64" -DCMAKE_OSX_DEPLOYMENT_TARGET=12.0'
@@ -89,7 +89,7 @@ jobs:
           done
           cp -r web/dist "stage/$name/web"
           cp -r examples "stage/$name/examples"
-          cp README.md "stage/$name/"
+          cp README.md LICENSE "stage/$name/"
           for tool in shrewdc shrewdness; do
             ls "stage/$name/$tool" "stage/$name/$tool.exe" 2>/dev/null | head -1 \
               || { echo "$tool missing from the archive" >&2; exit 1; }
