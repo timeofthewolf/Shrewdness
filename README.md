@@ -21,16 +21,6 @@ you edit Savvy, watch it turn into assembly and genes as you type, run it
 against a live terminal, and step through it one instruction at a time.
 → [`web/README.md`](web/README.md)
 
-```
-   you write             compiles to               the VM runs
-  ┌────────┐  compile  ┌──────────────────┐  execute ┌─────────┐
-  │ .savvy │ ────────► │ [1,72,45,1,101,…]│ ───────► │ output, │
-  └────────┘           │     (genome)     │          │offspring│
-                       └──────────────────┘          └─────────┘
-                            ▲       │ decompile (any genome -> runnable Savvy)
-                            └───────┘
-```
-
 ## Quick start
 
 ```sh
