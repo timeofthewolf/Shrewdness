@@ -196,21 +196,3 @@ Through the buffer-recycling `run_into` API a steady-state evaluation loop
 performs zero heap allocations. Runs are independent pure functions, so N cores
 give you N× by giving each thread its own `VM`. How it gets there is documented
 in the [Shrewd README](src/shrewd/README.md#speed).
-
-## Status
-
-The language, the compiler, the decompiler, the toolchain and the IDE are all
-built and working.
-
-`shrewd_demo` runs over 700,000 genomes per invocation: every example compiled
-and checked against its expected output, the entire one-mutation neighbourhood
-of a seed program, 200,000 random genomes, 100,000 mutants across 2,000
-lineages, constant folding verified against the VM's own arithmetic, and
-determinism checks. It's clean under `-fsanitize=address,undefined`.
-
-Past the suite, the toolchain has been fuzzed. Every VM optimisation round is
-proven observably invisible by hashing full results over 200,000 random genomes
-under randomized budgets (both dispatch strategies, before and after), 110,000
-generated Savvy programs survive compile → decompile → recompile with their
-behaviour intact, and the parser eats arbitrary garbage under ASan and UBSan
-without faulting.
