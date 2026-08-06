@@ -1,4 +1,10 @@
+<div align="center">
+
+<img src="web/public/logos/shrewdness-icon.svg" width="104" alt="">
+
 # Shrewdness
+
+</div>
 
 Two languages and an IDE for them.
 
